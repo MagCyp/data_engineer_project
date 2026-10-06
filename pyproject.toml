@@ -1,0 +1,20 @@
+[project]
+name = "weather-data-platform"
+version = "0.1.0"
+description = "Data engineering pet project for weather data"
+requires-python = ">=3.14"
+
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
