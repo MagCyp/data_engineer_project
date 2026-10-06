@@ -5,7 +5,9 @@ def test_config():
     config = load_config()
     assert isinstance(config, dict)
 
-    assert config["api"]["base_url"] == "https://api.open-meteo.com/v1/forecast"
+    assert config["api"]["base_url"] == (
+        "https://archive-api.open-meteo.com/v1/archive"
+    )
     assert config["api"]["timeout_seconds"] == 30
 
     assert config["locations"]

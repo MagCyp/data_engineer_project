@@ -11,31 +11,29 @@ def city_params() -> CityParams:
 
 
 @pytest.fixture
-def weather_payload() -> dict[str, Any]:
+def hourly_weather_payload() -> dict[str, Any]:
     return {
-        "latitude": 52.52,
-        "longitude": 13.42,
-        "generationtime_ms": 0.06,
+        "latitude": 41.875,
+        "longitude": 12.5,
+        "generationtime_ms": 0.23,
         "utc_offset_seconds": 0,
         "timezone": "GMT",
         "timezone_abbreviation": "GMT",
-        "elevation": 38.0,
-        "current_weather_units": {
+        "elevation": 58.0,
+        "hourly_units": {
             "time": "iso8601",
-            "interval": "seconds",
-            "temperature": "\N{DEGREE SIGN}C",
-            "windspeed": "km/h",
-            "winddirection": "\N{DEGREE SIGN}",
-            "is_day": "",
-            "weathercode": "wmo code",
+            "temperature_2m": "\N{DEGREE SIGN}C",
+            "rain": "mm",
+            "wind_speed_10m": "km/h",
+            "precipitation": "mm",
+            "relative_humidity_2m": "%",
         },
-        "current_weather": {
-            "time": "2026-10-05T12:00",
-            "interval": 900,
-            "temperature": 14.2,
-            "windspeed": 11.7,
-            "winddirection": 245.0,
-            "is_day": 1,
-            "weathercode": 3,
+        "hourly": {
+            "time": ["2026-10-06T00:00", "2026-10-06T01:00"],
+            "temperature_2m": [20.2, 19.7],
+            "rain": [0.1, 0.0],
+            "wind_speed_10m": [1.4, 1.5],
+            "precipitation": [0.1, 0.0],
+            "relative_humidity_2m": [71, 73],
         },
     }

@@ -1,5 +1,5 @@
 api:
-  base_url: https://api.open-meteo.com/v1/forecast
+  base_url: https://archive-api.open-meteo.com/v1/archive
   timeout_seconds: 30
 
 locations:

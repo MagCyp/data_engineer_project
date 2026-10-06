@@ -1,17 +1,18 @@
+from datetime import date
 from typing import Any
 from unittest.mock import Mock
 
 import pytest
 
 from weather_pipeline.ingestion import service
-from weather_pipeline.validation.models import CityParams, WeatherResponse
+from weather_pipeline.validation.models import CityParams, HourlyWeatherResponse
 
 
 @pytest.fixture
 def config() -> dict[str, Any]:
     return {
         "api": {
-            "base_url": "https://api.open-meteo.com/v1/forecast",
+            "base_url": "https://archive-api.open-meteo.com/v1/archive",
             "timeout_seconds": 30,
         },
         "locations": [
@@ -56,18 +57,25 @@ def test_fetch_weather_for_location_delegates_to_client(
     config: dict[str, Any],
     city_params: CityParams,
 ) -> None:
-    expected_weather = Mock(spec=WeatherResponse)
+    expected_weather = Mock(spec=HourlyWeatherResponse)
     find_location = Mock(return_value=city_params)
     fetch_weather = Mock(return_value=expected_weather)
     monkeypatch.setattr(service, "get_location_by_name", find_location)
     monkeypatch.setattr(service, "get_weather_data", fetch_weather)
 
-    result = service.fetch_weather_for_location(config, "Berlin")
+    result = service.fetch_weather_for_location(
+        config,
+        "Berlin",
+        start_date=date(2024, 1, 1),
+        end_date=date(2024, 1, 2),
+    )
 
     assert result is expected_weather
     find_location.assert_called_once_with("Berlin", config["locations"])
     fetch_weather.assert_called_once_with(
         city_params=city_params,
-        base_url="https://api.open-meteo.com/v1/forecast",
+        base_url="https://archive-api.open-meteo.com/v1/archive",
         timeout_seconds=30,
+        start_date=date(2024, 1, 1),
+        end_date=date(2024, 1, 2),
     )

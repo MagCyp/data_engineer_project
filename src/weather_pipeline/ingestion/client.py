@@ -1,9 +1,18 @@
+from datetime import date
+
 import httpx
 
 from weather_pipeline.validation.models import (
     CityParams,
-    WeatherResponse,
-    WeatherResponseHourly,
+    HourlyWeatherResponse,
+)
+
+HOURLY_PARAMETERS = (
+    "temperature_2m",
+    "rain",
+    "wind_speed_10m",
+    "precipitation",
+    "relative_humidity_2m",
 )
 
 
@@ -11,14 +20,20 @@ def get_weather_data(
     city_params: CityParams,
     base_url: str,
     timeout_seconds: int,
-    hourly: list[str] | None = None,
-) -> WeatherResponse | WeatherResponseHourly:
-    """Fetch and validate current weather data from the Open-Meteo API."""
-    params = {
+    *,
+    start_date: date,
+    end_date: date,
+) -> HourlyWeatherResponse:
+    """Fetch and validate historical hourly weather data."""
+    if start_date > end_date:
+        raise ValueError("start_date must be before or equal to end_date")
+
+    params: dict[str, float | str] = {
         "latitude": city_params.latitude,
         "longitude": city_params.longitude,
-        "current_weather": True,
-        "hourly": hourly,
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
+        "hourly": ",".join(HOURLY_PARAMETERS),
     }
 
     try:
@@ -33,4 +48,4 @@ def get_weather_data(
             f"HTTP error occurred: {error.response.status_code} - {error.response.text}"
         ) from error
 
-    return WeatherResponse.model_validate(response.json())
+    return HourlyWeatherResponse.model_validate(response.json())
