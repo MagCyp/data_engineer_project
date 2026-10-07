@@ -1,4 +1,4 @@
-from weather_pipeline.settings.config import load_config
+from settings.config import load_config
 
 
 def test_config():
@@ -9,8 +9,14 @@ def test_config():
         "https://archive-api.open-meteo.com/v1/archive"
     )
     assert config["api"]["timeout_seconds"] == 30
+    assert config["default_city"] == "New York"
 
     assert config["locations"]
+    assert {
+        "name": "New York",
+        "latitude": 40.7128,
+        "longitude": -74.006,
+    } in config["locations"]
 
     for item in config["locations"]:
         assert "name" in item

@@ -15,7 +15,9 @@ def config() -> dict[str, Any]:
             "base_url": "https://archive-api.open-meteo.com/v1/archive",
             "timeout_seconds": 30,
         },
+        "default_city": "New York",
         "locations": [
+            {"name": "New York", "latitude": 40.7128, "longitude": -74.006},
             {"name": "Rome", "latitude": 41.9028, "longitude": 12.4964},
             {"name": "Berlin", "latitude": 52.52, "longitude": 13.405},
         ],
@@ -74,6 +76,38 @@ def test_fetch_weather_for_location_delegates_to_client(
     find_location.assert_called_once_with("Berlin", config["locations"])
     fetch_weather.assert_called_once_with(
         city_params=city_params,
+        base_url="https://archive-api.open-meteo.com/v1/archive",
+        timeout_seconds=30,
+        start_date=date(2024, 1, 1),
+        end_date=date(2024, 1, 2),
+    )
+
+
+def test_fetch_weather_for_location_uses_default_city(
+    monkeypatch: pytest.MonkeyPatch,
+    config: dict[str, Any],
+) -> None:
+    new_york = CityParams(
+        name="New York",
+        latitude=40.7128,
+        longitude=-74.006,
+    )
+    expected_weather = Mock(spec=HourlyWeatherResponse)
+    find_location = Mock(return_value=new_york)
+    fetch_weather = Mock(return_value=expected_weather)
+    monkeypatch.setattr(service, "get_location_by_name", find_location)
+    monkeypatch.setattr(service, "get_weather_data", fetch_weather)
+
+    result = service.fetch_weather_for_location(
+        config,
+        start_date=date(2024, 1, 1),
+        end_date=date(2024, 1, 2),
+    )
+
+    assert result is expected_weather
+    find_location.assert_called_once_with("New York", config["locations"])
+    fetch_weather.assert_called_once_with(
+        city_params=new_york,
         base_url="https://archive-api.open-meteo.com/v1/archive",
         timeout_seconds=30,
         start_date=date(2024, 1, 1),

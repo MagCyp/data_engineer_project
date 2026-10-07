@@ -2,7 +2,13 @@ api:
   base_url: https://archive-api.open-meteo.com/v1/archive
   timeout_seconds: 30
 
+default_city: New York
+
 locations:
+  - name: New York
+    latitude: 40.7128
+    longitude: -74.0060
+
   - name: Rome
     latitude: 41.9028
     longitude: 12.4964

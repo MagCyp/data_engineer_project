@@ -29,13 +29,14 @@ def get_location_by_name(
 
 def fetch_weather_for_location(
     config: Mapping[str, Any],
-    city_name: str,
+    city_name: str | None = None,
     *,
     start_date: date,
     end_date: date,
 ) -> HourlyWeatherResponse:
     """Fetch historical hourly weather data for a given city name."""
-    city_params = get_location_by_name(city_name, config["locations"])
+    selected_city = config["default_city"] if city_name is None else city_name
+    city_params = get_location_by_name(selected_city, config["locations"])
     base_url = config["api"]["base_url"]
     timeout_seconds = config["api"]["timeout_seconds"]
     return get_weather_data(
