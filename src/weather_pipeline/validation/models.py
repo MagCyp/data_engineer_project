@@ -56,6 +56,20 @@ class HourlyWeatherResponse(WeatherResponse):
     hourly: HourlyWeather
 
 
+class WeatherObservation(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    location: str = Field(min_length=1)
+    timezone: str = Field(min_length=1)
+    time: datetime
+    temperature_2m: float
+    rain: NonNegativeFloat
+    wind_speed_10m: NonNegativeFloat
+    precipitation: NonNegativeFloat
+    relative_humidity_2m: Percentage
+    ingested_at: datetime
+
+
 class CityParams(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 

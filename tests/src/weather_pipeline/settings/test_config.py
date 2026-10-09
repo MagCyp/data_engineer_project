@@ -1,4 +1,6 @@
-from settings.config import load_config
+from pathlib import Path
+
+from settings.config import get_storage_path, load_config, project_root
 
 
 def test_config():
@@ -22,3 +24,19 @@ def test_config():
         assert "name" in item
         assert "latitude" in item
         assert "longitude" in item
+
+
+def test_get_storage_path_resolves_relative_project_path() -> None:
+    config = {"storage": {"custom_path": "data/custom"}}
+
+    result = get_storage_path(config, "custom_path")
+
+    assert result == project_root / "data" / "custom"
+
+
+def test_get_storage_path_keeps_absolute_path(tmp_path: Path) -> None:
+    config = {"storage": {"custom_path": str(tmp_path)}}
+
+    result = get_storage_path(config, "custom_path")
+
+    assert result == tmp_path
