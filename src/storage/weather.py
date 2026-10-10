@@ -25,10 +25,18 @@ WEATHER_OBSERVATION_SCHEMA = {
 def get_weather_observations_path(
     config: Mapping[str, Any],
     *,
+    year: int,
+    month: int,
     storage_key: str = "bronze_path",
 ) -> Path:
     """Return the configured path for weather observations."""
-    return get_storage_path(config, storage_key) / WEATHER_OBSERVATIONS_FILENAME
+    storage_path = get_storage_path(
+        config,
+        storage_key=storage_key,
+        year=year,
+        month=month,
+    )
+    return storage_path / WEATHER_OBSERVATIONS_FILENAME
 
 
 def weather_observations_to_dataframe(
