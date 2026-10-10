@@ -11,21 +11,22 @@ from storage.weather import (
 from weather_pipeline.validation.models import WeatherObservation
 
 
+def weather_observation(observed_at: datetime) -> WeatherObservation:
+    return WeatherObservation(
+        location="New York",
+        timezone="GMT",
+        time=observed_at,
+        temperature_2m=3.2,
+        rain=0.0,
+        wind_speed_10m=8.1,
+        precipitation=0.0,
+        relative_humidity_2m=72,
+        ingested_at=datetime(2026, 10, 7, 12, 0, tzinfo=UTC),
+    )
+
+
 def test_weather_observations_to_dataframe() -> None:
-    ingested_at = datetime(2026, 10, 7, 12, 0, tzinfo=UTC)
-    observations = [
-        WeatherObservation(
-            location="New York",
-            timezone="GMT",
-            time=datetime(2025, 1, 1, 10, 0),
-            temperature_2m=3.2,
-            rain=0.0,
-            wind_speed_10m=8.1,
-            precipitation=0.0,
-            relative_humidity_2m=72,
-            ingested_at=ingested_at,
-        )
-    ]
+    observations = [weather_observation(datetime(2025, 1, 1, 10, 0))]
 
     result = weather_observations_to_dataframe(observations)
 
@@ -43,8 +44,19 @@ def test_weather_observations_to_dataframe_keeps_schema_when_empty() -> None:
 def test_get_weather_observations_path_uses_configured_storage(
     tmp_path: Path,
 ) -> None:
-    config = {"storage": {"bronze_path": str(tmp_path / "bronze")}}
+    path_template = tmp_path / "bronze" / "year={year}" / "month={month}"
+    config = {"storage": {"bronze_path": str(path_template)}}
 
-    result = get_weather_observations_path(config)
+    result = get_weather_observations_path(
+        config,
+        year=2025,
+        month=1,
+    )
 
-    assert result == tmp_path / "bronze" / "weather_observations.parquet"
+    assert result == (
+        tmp_path
+        / "bronze"
+        / "year=2025"
+        / "month=01"
+        / "weather_observations.parquet"
+    )

@@ -6,11 +6,11 @@ from weather_pipeline.validation.models import (
 )
 
 
-def transform_weather_response(
+def transform_response_to_bronze(
     data: HourlyWeatherResponse,
     location: str,
 ) -> list[WeatherObservation]:
-    """Transform parallel hourly series into individual observations."""
+    """Transform an hourly API response into bronze weather observations."""
     hourly = data.hourly
     ingested_at = datetime.now(UTC)
 

@@ -1,22 +1,20 @@
 from datetime import UTC, datetime
 from typing import Any
 
-from weather_pipeline.transformations.observations import (
-    transform_weather_response,
-)
+from weather_pipeline.transformations.bronze import transform_response_to_bronze
 from weather_pipeline.validation.models import (
     HourlyWeatherResponse,
     WeatherObservation,
 )
 
 
-def test_transform_weather_response_returns_observation_models(
+def test_transform_response_to_bronze_returns_observation_models(
     hourly_weather_payload: dict[str, Any],
 ) -> None:
     response = HourlyWeatherResponse.model_validate(hourly_weather_payload)
     before_transform = datetime.now(UTC)
 
-    result = transform_weather_response(response, location="New York")
+    result = transform_response_to_bronze(response, location="New York")
     after_transform = datetime.now(UTC)
 
     assert len(result) == 2

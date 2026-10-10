@@ -22,5 +22,5 @@ locations:
     longitude: 13.4050
 
 storage:
-  bronze_path: data/bronze
-  silver_path: data/silver
+  bronze_path: data/bronze/year={year}/month={month}
+  silver_path: data/silver/year={year}/month={month}

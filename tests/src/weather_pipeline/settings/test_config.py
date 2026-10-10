@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from settings.config import get_storage_path, load_config, project_root
 
 
@@ -27,16 +29,46 @@ def test_config():
 
 
 def test_get_storage_path_resolves_relative_project_path() -> None:
-    config = {"storage": {"custom_path": "data/custom"}}
+    config = {
+        "storage": {
+            "custom_path": "data/custom/year={year}/month={month}",
+        }
+    }
 
-    result = get_storage_path(config, "custom_path")
+    result = get_storage_path(
+        config,
+        storage_key="custom_path",
+        year=2025,
+        month=1,
+    )
 
-    assert result == project_root / "data" / "custom"
+    assert result == (
+        project_root / "data" / "custom" / "year=2025" / "month=01"
+    )
 
 
 def test_get_storage_path_keeps_absolute_path(tmp_path: Path) -> None:
-    config = {"storage": {"custom_path": str(tmp_path)}}
+    path_template = tmp_path / "year={year}" / "month={month}"
+    config = {"storage": {"custom_path": str(path_template)}}
 
-    result = get_storage_path(config, "custom_path")
+    result = get_storage_path(
+        config,
+        storage_key="custom_path",
+        year=2025,
+        month=12,
+    )
 
-    assert result == tmp_path
+    assert result == tmp_path / "year=2025" / "month=12"
+
+
+@pytest.mark.parametrize("month", [0, 13])
+def test_get_storage_path_rejects_invalid_month(month: int) -> None:
+    config = {"storage": {"custom_path": "data/{year}/{month}"}}
+
+    with pytest.raises(ValueError, match="month must be between 1 and 12"):
+        get_storage_path(
+            config,
+            storage_key="custom_path",
+            year=2025,
+            month=month,
+        )
