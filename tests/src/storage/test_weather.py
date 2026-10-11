@@ -3,7 +3,7 @@ from pathlib import Path
 
 import polars as pl
 
-from storage.weather import (
+from storage.datasets.weather import (
     WEATHER_OBSERVATION_SCHEMA,
     WEATHER_PIPELINE_NAME,
     get_weather_observations_path,

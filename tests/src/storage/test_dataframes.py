@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from storage.dataframes import models_to_dataframe
+from storage.files.dataframes import models_to_dataframe
 
 
 class ExampleRecord(BaseModel):

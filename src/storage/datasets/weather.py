@@ -5,7 +5,7 @@ from typing import Any
 import polars as pl
 
 from settings.config import get_storage_path
-from storage.dataframes import models_to_dataframe
+from storage.files import models_to_dataframe
 from weather_pipeline.validation.models import WeatherObservation
 
 WEATHER_OBSERVATIONS_FILENAME = "weather_observations.parquet"

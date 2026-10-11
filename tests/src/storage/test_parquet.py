@@ -2,7 +2,7 @@ from pathlib import Path
 
 import polars as pl
 
-from storage.parquet import save_as_parquet
+from storage.files.parquet import save_as_parquet
 
 
 def test_save_as_parquet_creates_parent_directories(tmp_path: Path) -> None:
