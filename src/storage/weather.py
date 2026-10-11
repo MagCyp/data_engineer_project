@@ -9,6 +9,7 @@ from storage.dataframes import models_to_dataframe
 from weather_pipeline.validation.models import WeatherObservation
 
 WEATHER_OBSERVATIONS_FILENAME = "weather_observations.parquet"
+WEATHER_PIPELINE_NAME = "weather"
 WEATHER_OBSERVATION_SCHEMA = {
     "location": pl.String,
     "timezone": pl.String,
@@ -48,6 +49,7 @@ def get_weather_observations_path(
     storage_path = get_storage_path(
         config,
         storage_key=storage_key,
+        pipeline_name=WEATHER_PIPELINE_NAME,
         year=year,
         month=month,
     )

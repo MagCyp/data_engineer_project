@@ -5,6 +5,7 @@ import polars as pl
 
 from storage.weather import (
     WEATHER_OBSERVATION_SCHEMA,
+    WEATHER_PIPELINE_NAME,
     get_weather_observations_path,
     weather_observations_to_dataframe,
 )
@@ -46,7 +47,13 @@ def test_weather_observations_to_dataframe_keeps_schema_when_empty() -> None:
 def test_get_weather_observations_path_uses_configured_storage(
     tmp_path: Path,
 ) -> None:
-    path_template = tmp_path / "bronze" / "year={year}" / "month={month}"
+    path_template = (
+        tmp_path
+        / "bronze"
+        / "{pipeline_name}"
+        / "year={year}"
+        / "month={month}"
+    )
     config = {"storage": {"bronze_path": str(path_template)}}
 
     result = get_weather_observations_path(
@@ -59,6 +66,7 @@ def test_get_weather_observations_path_uses_configured_storage(
     assert result == (
         tmp_path
         / "bronze"
+        / WEATHER_PIPELINE_NAME
         / "year=2025"
         / "month=01"
         / "location=new_york"

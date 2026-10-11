@@ -18,6 +18,7 @@ def get_storage_path(
     config: Mapping[str, Any],
     *,
     storage_key: str,
+    pipeline_name: str,
     year: int,
     month: int,
 ) -> Path:
@@ -30,6 +31,7 @@ def get_storage_path(
     path_template = str(config["storage"][storage_key])
     path = Path(
         path_template.format(
+            pipeline_name=pipeline_name,
             year=year,
             month=f"{month:02d}",
         )

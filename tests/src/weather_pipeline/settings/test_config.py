@@ -14,6 +14,14 @@ def test_config():
     )
     assert config["api"]["timeout_seconds"] == 30
     assert config["default_city"] == "New York"
+    assert config["storage"] == {
+        "bronze_path": (
+            "data/bronze/{pipeline_name}/year={year}/month={month}"
+        ),
+        "silver_path": (
+            "data/silver/{pipeline_name}/year={year}/month={month}"
+        ),
+    }
 
     assert config["locations"]
     assert {
@@ -31,34 +39,45 @@ def test_config():
 def test_get_storage_path_resolves_relative_project_path() -> None:
     config = {
         "storage": {
-            "custom_path": "data/custom/year={year}/month={month}",
+            "custom_path": (
+                "data/custom/{pipeline_name}/year={year}/month={month}"
+            ),
         }
     }
 
     result = get_storage_path(
         config,
         storage_key="custom_path",
+        pipeline_name="weather",
         year=2025,
         month=1,
     )
 
     assert result == (
-        project_root / "data" / "custom" / "year=2025" / "month=01"
+        project_root
+        / "data"
+        / "custom"
+        / "weather"
+        / "year=2025"
+        / "month=01"
     )
 
 
 def test_get_storage_path_keeps_absolute_path(tmp_path: Path) -> None:
-    path_template = tmp_path / "year={year}" / "month={month}"
+    path_template = (
+        tmp_path / "{pipeline_name}" / "year={year}" / "month={month}"
+    )
     config = {"storage": {"custom_path": str(path_template)}}
 
     result = get_storage_path(
         config,
         storage_key="custom_path",
+        pipeline_name="weather",
         year=2025,
         month=12,
     )
 
-    assert result == tmp_path / "year=2025" / "month=12"
+    assert result == tmp_path / "weather" / "year=2025" / "month=12"
 
 
 @pytest.mark.parametrize("month", [0, 13])
@@ -69,6 +88,7 @@ def test_get_storage_path_rejects_invalid_month(month: int) -> None:
         get_storage_path(
             config,
             storage_key="custom_path",
+            pipeline_name="weather",
             year=2025,
             month=month,
         )
