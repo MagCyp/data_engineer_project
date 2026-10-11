@@ -12,7 +12,7 @@ def bronze_row(**overrides: object) -> dict[str, object]:
     row: dict[str, object] = {
         "location": "New York",
         "timezone": "GMT",
-        "time": datetime(2025, 1, 1, 10, 0),
+        "time": datetime(2025, 1, 1, 10, 0, tzinfo=UTC),
         "temperature_2m": 3.2,
         "relative_humidity_2m": 72,
         "precipitation": 0.0,
@@ -34,7 +34,7 @@ def test_transform_bronze_to_silver_renames_and_keeps_latest_record() -> None:
             bronze_row(temperature_2m=3.2),
             bronze_row(
                 location=" Rome ",
-                time=datetime(2025, 1, 1, 9, 0),
+                time=datetime(2025, 1, 1, 9, 0, tzinfo=UTC),
                 temperature_2m=12.5,
             ),
         ]
@@ -52,3 +52,20 @@ def test_transform_bronze_to_silver_renames_and_keeps_latest_record() -> None:
         "temperature_c",
     ) == 3.2
     assert result["timezone"].to_list() == ["GMT", "GMT"]
+
+
+def test_transform_bronze_to_silver_keeps_repeated_local_dst_hour() -> None:
+    dataframe = pl.DataFrame(
+        [
+            bronze_row(time=datetime(2025, 11, 2, 5, 30, tzinfo=UTC)),
+            bronze_row(time=datetime(2025, 11, 2, 6, 30, tzinfo=UTC)),
+        ]
+    )
+
+    result = transform_bronze_to_silver(dataframe)
+
+    assert result.height == 2
+    assert result["observed_at_utc"].to_list() == [
+        datetime(2025, 11, 2, 5, 30, tzinfo=UTC),
+        datetime(2025, 11, 2, 6, 30, tzinfo=UTC),
+    ]

@@ -9,7 +9,7 @@ def iter_month_ranges(
     if start_date > end_date:
         raise ValueError("start_date must be less than or equal to end_date")
 
-    current_date = start_date.replace(day=1)
+    current_date = start_date
 
     while current_date <= end_date:
         next_month = (current_date.month % 12) + 1

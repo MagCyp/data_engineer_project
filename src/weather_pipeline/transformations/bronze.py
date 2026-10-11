@@ -6,6 +6,18 @@ from weather_pipeline.validation.models import (
 )
 
 
+def _to_utc(value: datetime, source_timezone: str) -> datetime:
+    if value.tzinfo is not None and value.utcoffset() is not None:
+        return value.astimezone(UTC)
+
+    if source_timezone not in {"GMT", "UTC"}:
+        raise ValueError(
+            "Naive weather timestamps can only be normalized from GMT or UTC"
+        )
+
+    return value.replace(tzinfo=UTC)
+
+
 def transform_response_to_bronze(
     data: HourlyWeatherResponse,
     location: str,
@@ -18,7 +30,7 @@ def transform_response_to_bronze(
         WeatherObservation(
             location=location,
             timezone=data.timezone,
-            time=time,
+            time=_to_utc(time, data.timezone),
             temperature_2m=temperature,
             rain=rain,
             wind_speed_10m=wind_speed,

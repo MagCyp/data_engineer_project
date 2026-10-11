@@ -26,7 +26,9 @@ def weather_observation(observed_at: datetime) -> WeatherObservation:
 
 
 def test_weather_observations_to_dataframe() -> None:
-    observations = [weather_observation(datetime(2025, 1, 1, 10, 0))]
+    observations = [
+        weather_observation(datetime(2025, 1, 1, 10, 0, tzinfo=UTC))
+    ]
 
     result = weather_observations_to_dataframe(observations)
 
@@ -49,6 +51,7 @@ def test_get_weather_observations_path_uses_configured_storage(
 
     result = get_weather_observations_path(
         config,
+        location="New York",
         year=2025,
         month=1,
     )
@@ -58,5 +61,21 @@ def test_get_weather_observations_path_uses_configured_storage(
         / "bronze"
         / "year=2025"
         / "month=01"
+        / "location=new_york"
         / "weather_observations.parquet"
     )
+
+
+def test_get_weather_observations_path_sanitizes_location(
+    tmp_path: Path,
+) -> None:
+    config = {"storage": {"bronze_path": str(tmp_path)}}
+
+    result = get_weather_observations_path(
+        config,
+        location="  St. Louis / US  ",
+        year=2025,
+        month=1,
+    )
+
+    assert result.parent.name == "location=st_louis_us"

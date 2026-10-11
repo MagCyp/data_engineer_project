@@ -3,7 +3,7 @@ import polars as pl
 SILVER_REQUIRED_COLUMNS = {
     "location",
     "timezone",
-    "observed_at",
+    "observed_at_utc",
     "temperature_c",
     "relative_humidity_pct",
     "precipitation_mm",
@@ -20,12 +20,17 @@ def validate_silver_weather(dataframe: pl.DataFrame) -> pl.DataFrame:
         missing = ", ".join(sorted(missing_columns))
         raise ValueError(f"Missing silver columns: {missing}")
 
+    for column in ("observed_at_utc", "ingested_at"):
+        dtype = dataframe.schema[column]
+        if not isinstance(dtype, pl.Datetime) or dtype.time_zone != "UTC":
+            raise ValueError(f"Silver column '{column}' must use UTC timezone")
+
     valid_row = (
         pl.col("location").is_not_null()
         & (pl.col("location").str.strip_chars() != "")
         & pl.col("timezone").is_not_null()
         & (pl.col("timezone").str.strip_chars() != "")
-        & pl.col("observed_at").is_not_null()
+        & pl.col("observed_at_utc").is_not_null()
         & pl.col("temperature_c").is_not_null()
         & pl.col("temperature_c").is_finite()
         & pl.col("relative_humidity_pct").is_between(0, 100)

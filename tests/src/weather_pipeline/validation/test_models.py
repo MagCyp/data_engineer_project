@@ -1,10 +1,14 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 import pytest
 from pydantic import ValidationError
 
-from weather_pipeline.validation.models import CityParams, HourlyWeatherResponse
+from weather_pipeline.validation.models import (
+    CityParams,
+    HourlyWeatherResponse,
+    WeatherObservation,
+)
 
 
 def test_city_params_matches_project_config_shape() -> None:
@@ -98,3 +102,21 @@ def test_hourly_weather_response_rejects_invalid_measurements(
 
     with pytest.raises(ValidationError):
         HourlyWeatherResponse.model_validate(hourly_weather_payload)
+
+
+def test_weather_observation_requires_timezone_aware_timestamps() -> None:
+    with pytest.raises(
+        ValidationError,
+        match="timestamps must be timezone-aware",
+    ):
+        WeatherObservation(
+            location="New York",
+            timezone="GMT",
+            time=datetime(2025, 1, 1, 10, 0),
+            temperature_2m=3.2,
+            rain=0.0,
+            wind_speed_10m=8.1,
+            precipitation=0.0,
+            relative_humidity_2m=72,
+            ingested_at=datetime(2026, 10, 7, 12, 0, tzinfo=UTC),
+        )

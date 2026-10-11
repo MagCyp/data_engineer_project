@@ -21,7 +21,7 @@ def test_transform_response_to_bronze_returns_observation_models(
     assert result[0].model_dump(exclude={"ingested_at"}) == {
         "location": "New York",
         "timezone": "GMT",
-        "time": datetime(2026, 10, 6, 0, 0),
+        "time": datetime(2026, 10, 6, 0, 0, tzinfo=UTC),
         "temperature_2m": 20.2,
         "rain": 0.1,
         "wind_speed_10m": 1.4,
@@ -31,7 +31,7 @@ def test_transform_response_to_bronze_returns_observation_models(
     assert result[1].model_dump(exclude={"ingested_at"}) == {
         "location": "New York",
         "timezone": "GMT",
-        "time": datetime(2026, 10, 6, 1, 0),
+        "time": datetime(2026, 10, 6, 1, 0, tzinfo=UTC),
         "temperature_2m": 19.7,
         "rain": 0.0,
         "wind_speed_10m": 1.5,

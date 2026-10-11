@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated, Self
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 Percentage = Annotated[int, Field(ge=0, le=100)]
 NonNegativeFloat = Annotated[float, Field(ge=0)]
@@ -68,6 +68,14 @@ class WeatherObservation(BaseModel):
     precipitation: NonNegativeFloat
     relative_humidity_2m: Percentage
     ingested_at: datetime
+
+    @field_validator("time", "ingested_at")
+    @classmethod
+    def ensure_utc_datetime(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("weather observation timestamps must be timezone-aware")
+
+        return value.astimezone(UTC)
 
 
 class CityParams(BaseModel):

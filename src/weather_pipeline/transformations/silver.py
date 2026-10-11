@@ -3,7 +3,7 @@ import polars as pl
 SILVER_COLUMNS = [
     "location",
     "timezone",
-    "observed_at",
+    "observed_at_utc",
     "temperature_c",
     "relative_humidity_pct",
     "precipitation_mm",
@@ -18,7 +18,7 @@ def transform_bronze_to_silver(dataframe: pl.DataFrame) -> pl.DataFrame:
     silver = dataframe.select(
         pl.col("location").str.strip_chars(),
         pl.col("timezone").str.strip_chars(),
-        pl.col("time").alias("observed_at"),
+        pl.col("time").alias("observed_at_utc"),
         pl.col("temperature_2m").alias("temperature_c"),
         pl.col("relative_humidity_2m").alias("relative_humidity_pct"),
         pl.col("precipitation").alias("precipitation_mm"),
@@ -30,9 +30,9 @@ def transform_bronze_to_silver(dataframe: pl.DataFrame) -> pl.DataFrame:
     return (
         silver.sort("ingested_at")
         .unique(
-            subset=["location", "observed_at"],
+            subset=["location", "observed_at_utc"],
             keep="last",
         )
         .select(SILVER_COLUMNS)
-        .sort(["location", "observed_at"])
+        .sort(["location", "observed_at_utc"])
     )

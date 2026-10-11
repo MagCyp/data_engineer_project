@@ -10,7 +10,7 @@ def silver_row(**overrides: object) -> dict[str, object]:
     row: dict[str, object] = {
         "location": "New York",
         "timezone": "GMT",
-        "observed_at": datetime(2025, 1, 1, 10, 0),
+        "observed_at_utc": datetime(2025, 1, 1, 10, 0, tzinfo=UTC),
         "temperature_c": 3.2,
         "relative_humidity_pct": 72,
         "precipitation_mm": 0.0,
@@ -36,7 +36,7 @@ def test_validate_silver_weather_returns_valid_data_unchanged() -> None:
         ("location", None),
         ("location", "   "),
         ("timezone", None),
-        ("observed_at", None),
+        ("observed_at_utc", None),
         ("temperature_c", None),
         ("temperature_c", float("nan")),
         ("relative_humidity_pct", -1),
@@ -71,4 +71,16 @@ def test_validate_silver_weather_rejects_missing_columns() -> None:
     dataframe = pl.DataFrame([silver_row()]).drop("rain_mm")
 
     with pytest.raises(ValueError, match="Missing silver columns: rain_mm"):
+        validate_silver_weather(dataframe)
+
+
+def test_validate_silver_weather_rejects_naive_observation_time() -> None:
+    dataframe = pl.DataFrame([silver_row()]).with_columns(
+        pl.col("observed_at_utc").dt.replace_time_zone(None)
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Silver column 'observed_at_utc' must use UTC timezone",
+    ):
         validate_silver_weather(dataframe)

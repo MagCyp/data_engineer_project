@@ -34,6 +34,7 @@ def get_weather_data(
         "start_date": start_date.isoformat(),
         "end_date": end_date.isoformat(),
         "hourly": ",".join(HOURLY_PARAMETERS),
+        "timezone": "GMT",
     }
 
     try:

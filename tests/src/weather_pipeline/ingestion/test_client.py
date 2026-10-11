@@ -69,6 +69,7 @@ def test_get_weather_data_requests_historical_hourly_weather(
                 "temperature_2m,rain,wind_speed_10m,precipitation,"
                 "relative_humidity_2m"
             ),
+            "timezone": "GMT",
         },
         "timeout": 30,
     }
