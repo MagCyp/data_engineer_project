@@ -63,6 +63,30 @@ def test_save_into_stage_rejects_wrong_columns() -> None:
         save_into_stage(data, connection, weather_observations)
 
 
+def test_save_into_stage_rejects_duplicate_primary_keys() -> None:
+    connection = MagicMock(spec=Connection)
+    data = pl.concat([silver_dataframe(), silver_dataframe()])
+
+    with pytest.raises(ValueError, match="duplicate primary keys"):
+        save_into_stage(data, connection, weather_observations)
+
+    connection._run_ddl_visitor.assert_not_called()
+
+
+def test_save_into_stage_requires_active_transaction() -> None:
+    connection = MagicMock(spec=Connection)
+    connection.in_transaction.return_value = False
+
+    with pytest.raises(RuntimeError, match="requires an active transaction"):
+        save_into_stage(
+            silver_dataframe(),
+            connection,
+            weather_observations,
+        )
+
+    connection._run_ddl_visitor.assert_not_called()
+
+
 def test_copy_into_database_builds_primary_key_upsert() -> None:
     connection = MagicMock(spec=Connection)
     connection.execute.return_value.rowcount = 1
@@ -84,6 +108,7 @@ def test_copy_into_database_builds_primary_key_upsert() -> None:
     assert inserted_rows == 1
     assert statement.get_execution_options()["preserve_rowcount"] is True
     assert "INSERT INTO landing.weather_observations" in sql
+    assert "WHERE true" in sql
     assert "ON CONFLICT (location, observed_at_utc) DO UPDATE" in sql
     assert "temperature_c = excluded.temperature_c" in sql
 

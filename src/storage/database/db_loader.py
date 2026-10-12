@@ -2,7 +2,7 @@ from uuid import uuid4
 
 import polars as pl
 from psycopg import sql
-from sqlalchemy import Column, Connection, MetaData, Table, select
+from sqlalchemy import Column, Connection, MetaData, Table, select, true
 from sqlalchemy.dialects.postgresql import insert
 
 POSTGRES_IDENTIFIER_MAX_LENGTH = 63
@@ -36,6 +36,32 @@ def _stage_table_name(target_table: Table) -> str:
     return f"{prefix}_{suffix}"
 
 
+def _require_active_transaction(db_connection: Connection) -> None:
+    if not db_connection.in_transaction():
+        raise RuntimeError(
+            "Database loading requires an active transaction. "
+            "Use 'with engine.begin() as connection'."
+        )
+
+
+def _validate_primary_key_uniqueness(
+    data: pl.DataFrame,
+    target_table: Table,
+) -> None:
+    primary_key_names = [column.name for column in target_table.primary_key.columns]
+    if not primary_key_names or data.is_empty():
+        return
+
+    keys = data.select(primary_key_names)
+    duplicate_keys = keys.filter(keys.is_duplicated()).unique(maintain_order=True)
+    if not duplicate_keys.is_empty():
+        sample = duplicate_keys.head(5).to_dicts()
+        columns = ", ".join(primary_key_names)
+        raise ValueError(
+            f"DataFrame contains duplicate primary keys ({columns}): {sample}"
+        )
+
+
 def _copy_dataframe_into_table(
     data: pl.DataFrame,
     db_connection: Connection,
@@ -66,7 +92,9 @@ def save_into_stage(
     target_table: Table,
 ) -> Table:
     """Create a transaction-scoped temporary table and load a DataFrame into it."""
+    _require_active_transaction(db_connection)
     column_names = _validate_dataframe_columns(data, target_table)
+    _validate_primary_key_uniqueness(data, target_table)
     stage_table = Table(
         _stage_table_name(target_table),
         MetaData(),
@@ -100,13 +128,16 @@ def copy_into_database(
     target_table: Table,
 ) -> int:
     """Upsert all staged rows into a PostgreSQL target table."""
+    _require_active_transaction(db_connection)
     column_names = list(target_table.columns.keys())
     missing_columns = set(column_names) - set(stage_table.columns.keys())
     if missing_columns:
         missing = ", ".join(sorted(missing_columns))
         raise ValueError(f"Stage table is missing target columns: {missing}")
 
-    source_rows = select(*(stage_table.c[name] for name in column_names))
+    source_rows = select(
+        *(stage_table.c[name] for name in column_names)
+    ).where(true())
     statement = insert(target_table).from_select(column_names, source_rows)
 
     primary_key_columns = list(target_table.primary_key.columns)

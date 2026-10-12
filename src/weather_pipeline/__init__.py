@@ -3,6 +3,7 @@ from .ingestion import (
     get_location_by_name,
     get_weather_data,
 )
+from .load import SILVER_WEATHER_SCHEMA, load_weather
 from .transformations import (
     transform_bronze_to_silver,
     transform_response_to_bronze,
@@ -23,11 +24,13 @@ __all__ = [
     "HourlyWeather",
     "HourlyWeatherResponse",
     "HourlyWeatherUnits",
+    "SILVER_WEATHER_SCHEMA",
     "WeatherObservation",
     "WeatherResponse",
     "fetch_weather_for_location",
     "get_location_by_name",
     "get_weather_data",
+    "load_weather",
     "transform_bronze_to_silver",
     "transform_response_to_bronze",
     "validate_bronze_weather",
