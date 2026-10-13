@@ -3,6 +3,7 @@
 .ruff_cache/
 .env
 data/
+logs/
 
 __pycache__/
 *.py[cod]
