@@ -1,9 +1,10 @@
 import argparse
 from collections.abc import Sequence
 
-from backfill import backfill_weather
 from helpers import parse_date
 from settings import load_config
+
+from .backfill import backfill_weather
 
 
 def build_parser() -> argparse.ArgumentParser:

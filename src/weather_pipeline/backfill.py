@@ -3,7 +3,8 @@ from datetime import date
 from typing import Any
 
 from helpers import iter_month_ranges
-from pipeline import process_weather_month
+
+from .pipeline import process_weather_month
 
 
 def backfill_weather(

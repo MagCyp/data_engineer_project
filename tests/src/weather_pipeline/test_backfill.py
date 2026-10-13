@@ -3,7 +3,7 @@ from unittest.mock import Mock, call
 
 import pytest
 
-import backfill
+import weather_pipeline.backfill as backfill
 
 
 def test_backfill_weather_processes_each_month(
