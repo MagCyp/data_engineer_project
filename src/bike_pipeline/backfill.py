@@ -21,9 +21,6 @@ def backfill_bike(
     if start_date > end_date:
         raise ValueError("start_date must be less than or equal to end_date")
 
-    # The 400+ MB counts CSV is scanned and collected exactly once for the
-    # complete backfill range. Monthly processing below only filters this
-    # in-memory frame and never reopens the source file.
     source_data = read_bike_data(
         counts_file_path,
         start_date=start_date,

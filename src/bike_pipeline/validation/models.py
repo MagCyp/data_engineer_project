@@ -12,9 +12,6 @@ BIKE_SOURCE_TIMEZONE_MAP = {
     "(UTC-05:00) US/Eastern;DST": BIKE_LOCAL_TIMEZONE,
 }
 
-# ``counts`` is read as text first because the source uses values such as
-# ``"1,098"``. ``scan_bike_csv`` removes the thousands separator and exposes
-# the typed BIKE_SOURCE_SCHEMA to the rest of the pipeline.
 BIKE_RAW_CSV_SCHEMA = pl.Schema(
     {
         "countid": pl.Int64,
