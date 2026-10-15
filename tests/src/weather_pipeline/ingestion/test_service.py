@@ -11,23 +11,43 @@ from weather_pipeline.validation.models import CityParams, HourlyWeatherResponse
 @pytest.fixture
 def config() -> dict[str, Any]:
     return {
-        "api": {
-            "base_url": "https://archive-api.open-meteo.com/v1/archive",
-            "timeout_seconds": 30,
+        "apis": {
+            "open_meteo_archive": {
+                "base_url": "https://archive-api.open-meteo.com/v1/archive",
+                "timeout_seconds": 30,
+            }
         },
-        "default_city": "New York",
-        "locations": [
-            {"name": "New York", "latitude": 40.7128, "longitude": -74.006},
-            {"name": "Rome", "latitude": 41.9028, "longitude": 12.4964},
-            {"name": "Berlin", "latitude": 52.52, "longitude": 13.405},
-        ],
+        "pipelines": {
+            "weather": {
+                "api": "open_meteo_archive",
+                "default_city": "New York",
+                "locations": [
+                    {
+                        "name": "New York",
+                        "latitude": 40.7128,
+                        "longitude": -74.006,
+                    },
+                    {
+                        "name": "Rome",
+                        "latitude": 41.9028,
+                        "longitude": 12.4964,
+                    },
+                    {
+                        "name": "Berlin",
+                        "latitude": 52.52,
+                        "longitude": 13.405,
+                    },
+                ],
+            }
+        },
     }
 
 
 def test_get_location_by_name_builds_city_params(
     config: dict[str, Any],
 ) -> None:
-    result = service.get_location_by_name("Berlin", config["locations"])
+    locations = config["pipelines"]["weather"]["locations"]
+    result = service.get_location_by_name("Berlin", locations)
 
     assert result == CityParams(
         name="Berlin",
@@ -51,7 +71,10 @@ def test_get_location_by_name_raises_for_unknown_city(
         ValueError,
         match="City 'Paris' not found in the configured locations",
     ):
-        service.get_location_by_name("Paris", config["locations"])
+        service.get_location_by_name(
+            "Paris",
+            config["pipelines"]["weather"]["locations"],
+        )
 
 
 def test_fetch_weather_for_location_delegates_to_client(
@@ -73,7 +96,10 @@ def test_fetch_weather_for_location_delegates_to_client(
     )
 
     assert result is expected_weather
-    find_location.assert_called_once_with("Berlin", config["locations"])
+    find_location.assert_called_once_with(
+        "Berlin",
+        config["pipelines"]["weather"]["locations"],
+    )
     fetch_weather.assert_called_once_with(
         city_params=city_params,
         base_url="https://archive-api.open-meteo.com/v1/archive",
@@ -105,7 +131,10 @@ def test_fetch_weather_for_location_uses_default_city(
     )
 
     assert result is expected_weather
-    find_location.assert_called_once_with("New York", config["locations"])
+    find_location.assert_called_once_with(
+        "New York",
+        config["pipelines"]["weather"]["locations"],
+    )
     fetch_weather.assert_called_once_with(
         city_params=new_york,
         base_url="https://archive-api.open-meteo.com/v1/archive",

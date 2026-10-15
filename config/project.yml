@@ -1,26 +1,64 @@
-api:
-  base_url: https://archive-api.open-meteo.com/v1/archive
-  timeout_seconds: 30
+apis:
+  open_meteo_archive:
+    base_url: https://archive-api.open-meteo.com/v1/archive
+    timeout_seconds: 30
 
-default_city: New York
+  ny_open_data:
+    base_url: https://data.ny.gov/resource
+    response_format: json
+    timeout_seconds: 60
 
-locations:
-  - name: New York
-    latitude: 40.7128
-    longitude: -74.0060
+pipelines:
+  weather:
+    api: open_meteo_archive
+    default_city: New York
+    locations:
+      - name: New York
+        latitude: 40.7128
+        longitude: -74.0060
 
-  - name: Rome
-    latitude: 41.9028
-    longitude: 12.4964
+      - name: Rome
+        latitude: 41.9028
+        longitude: 12.4964
 
-  - name: Milan
-    latitude: 45.4642
-    longitude: 9.1900
+      - name: Milan
+        latitude: 45.4642
+        longitude: 9.1900
 
-  - name: Berlin
-    latitude: 52.5200
-    longitude: 13.4050
+      - name: Berlin
+        latitude: 52.5200
+        longitude: 13.4050
+
+  bike:
+    raw_files:
+      counts: bicycle_counts.csv
+      counters: bicycle_counters.csv
+
+  mta_subway:
+    api: ny_open_data
+    datasets:
+      hourly_ridership_2017_2019:
+        resource_id: t69i-h2me
+        start_year: 2017
+        end_year: 2019
+        incremental: false
+        about_url: https://data.ny.gov/Transportation/MTA-Subway-Hourly-Ridership-2017-2019/t69i-h2me/about_data
+
+      hourly_ridership_2020_2024:
+        resource_id: wujg-7c2s
+        start_year: 2020
+        end_year: 2024
+        incremental: false
+        about_url: https://data.ny.gov/Transportation/MTA-Subway-Hourly-Ridership-2020-2024/wujg-7c2s/about_data
+
+      hourly_ridership_2025_present:
+        resource_id: 5wq4-mkjj
+        start_year: 2025
+        end_year: null
+        incremental: true
+        about_url: https://data.ny.gov/Transportation/MTA-Subway-Hourly-Ridership-Beginning-2025/5wq4-mkjj/about_data
 
 storage:
+  raw_path: data/raw/{pipeline_name}
   bronze_path: data/bronze/{pipeline_name}/year={year}/month={month}
   silver_path: data/silver/{pipeline_name}/year={year}/month={month}

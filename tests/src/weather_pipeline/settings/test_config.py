@@ -2,19 +2,30 @@ from pathlib import Path
 
 import pytest
 
-from settings.config import get_storage_path, load_config, project_root
+from settings.config import (
+    get_api_config,
+    get_pipeline_config,
+    get_storage_path,
+    load_config,
+    project_root,
+)
 
 
 def test_config():
     config = load_config()
     assert isinstance(config, dict)
 
-    assert config["api"]["base_url"] == (
+    weather_api = config["apis"]["open_meteo_archive"]
+    assert weather_api["base_url"] == (
         "https://archive-api.open-meteo.com/v1/archive"
     )
-    assert config["api"]["timeout_seconds"] == 30
-    assert config["default_city"] == "New York"
+    assert weather_api["timeout_seconds"] == 30
+
+    weather = config["pipelines"]["weather"]
+    assert weather["api"] == "open_meteo_archive"
+    assert weather["default_city"] == "New York"
     assert config["storage"] == {
+        "raw_path": "data/raw/{pipeline_name}",
         "bronze_path": (
             "data/bronze/{pipeline_name}/year={year}/month={month}"
         ),
@@ -23,17 +34,55 @@ def test_config():
         ),
     }
 
-    assert config["locations"]
+    assert weather["locations"]
     assert {
         "name": "New York",
         "latitude": 40.7128,
         "longitude": -74.006,
-    } in config["locations"]
+    } in weather["locations"]
 
-    for item in config["locations"]:
+    for item in weather["locations"]:
         assert "name" in item
         assert "latitude" in item
         assert "longitude" in item
+
+    subway = config["pipelines"]["mta_subway"]
+    assert subway["api"] == "ny_open_data"
+    assert {
+        dataset["resource_id"]
+        for dataset in subway["datasets"].values()
+    } == {"t69i-h2me", "wujg-7c2s", "5wq4-mkjj"}
+    assert subway["datasets"]["hourly_ridership_2025_present"][
+        "incremental"
+    ] is True
+
+    bike = config["pipelines"]["bike"]
+    assert bike["raw_files"] == {
+        "counts": "bicycle_counts.csv",
+        "counters": "bicycle_counters.csv",
+    }
+
+
+def test_get_named_api_and_pipeline_config() -> None:
+    config = load_config()
+
+    api = get_api_config(config, "ny_open_data")
+    pipeline = get_pipeline_config(config, "mta_subway")
+
+    assert api["base_url"] == "https://data.ny.gov/resource"
+    assert api["response_format"] == "json"
+    assert pipeline["api"] == "ny_open_data"
+
+
+def test_get_named_config_rejects_unknown_names() -> None:
+    with pytest.raises(ValueError, match="API 'missing' is not configured"):
+        get_api_config({"apis": {}}, "missing")
+
+    with pytest.raises(
+        ValueError,
+        match="Pipeline 'missing' is not configured",
+    ):
+        get_pipeline_config({"pipelines": {}}, "missing")
 
 
 def test_get_storage_path_resolves_relative_project_path() -> None:
@@ -61,6 +110,33 @@ def test_get_storage_path_resolves_relative_project_path() -> None:
         / "year=2025"
         / "month=01"
     )
+
+
+def test_get_storage_path_resolves_unpartitioned_raw_path() -> None:
+    config = {"storage": {"raw_path": "data/raw/{pipeline_name}"}}
+
+    result = get_storage_path(
+        config,
+        storage_key="raw_path",
+        pipeline_name="bike",
+    )
+
+    assert result == project_root / "data" / "raw" / "bike"
+
+
+def test_get_storage_path_requires_partition_values_from_template() -> None:
+    config = {
+        "storage": {
+            "bronze_path": "data/bronze/{pipeline_name}/year={year}",
+        }
+    }
+
+    with pytest.raises(ValueError, match="requires year"):
+        get_storage_path(
+            config,
+            storage_key="bronze_path",
+            pipeline_name="bike",
+        )
 
 
 def test_get_storage_path_keeps_absolute_path(tmp_path: Path) -> None:

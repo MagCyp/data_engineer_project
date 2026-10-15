@@ -9,8 +9,21 @@ from bike_pipeline import cli
 
 def test_main_runs_backfill_with_default_source_files(
     monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
 ) -> None:
-    config: dict[str, object] = {}
+    config: dict[str, object] = {
+        "pipelines": {
+            "bike": {
+                "raw_files": {
+                    "counts": "bicycle_counts.csv",
+                    "counters": "bicycle_counters.csv",
+                }
+            }
+        },
+        "storage": {
+            "raw_path": str(tmp_path / "raw" / "{pipeline_name}"),
+        }
+    }
     backfill_bike = Mock()
     load_bike_range = Mock()
     monkeypatch.setattr(cli, "load_config", Mock(return_value=config))
@@ -30,8 +43,12 @@ def test_main_runs_backfill_with_default_source_files(
     assert result == 0
     backfill_bike.assert_called_once_with(
         config=config,
-        counts_file_path=Path("data/raw/bicycle_counts.csv"),
-        counters_file_path=Path("data/raw/bicycle_counters.csv"),
+        counts_file_path=(
+            tmp_path / "raw" / "bike" / "bicycle_counts.csv"
+        ),
+        counters_file_path=(
+            tmp_path / "raw" / "bike" / "bicycle_counters.csv"
+        ),
         start_date=date(2025, 1, 15),
         end_date=date(2025, 3, 10),
     )

@@ -11,7 +11,7 @@ def test_backfill_weather_processes_each_month(
 ) -> None:
     process_weather_month = Mock()
     monkeypatch.setattr(backfill, "process_weather_month", process_weather_month)
-    config = {"default_city": "New York"}
+    config = {"pipelines": {"weather": {"default_city": "New York"}}}
 
     backfill.backfill_weather(
         config,
@@ -31,7 +31,7 @@ def test_backfill_weather_uses_explicit_location(
 ) -> None:
     process_weather_month = Mock()
     monkeypatch.setattr(backfill, "process_weather_month", process_weather_month)
-    config = {"default_city": "New York"}
+    config = {"pipelines": {"weather": {"default_city": "New York"}}}
 
     backfill.backfill_weather(
         config,

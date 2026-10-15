@@ -9,7 +9,7 @@ from weather_pipeline import cli
 def test_main_runs_backfill_with_parsed_dates(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    config = {"default_city": "New York"}
+    config = {"pipelines": {"weather": {"default_city": "New York"}}}
     load_config = Mock(return_value=config)
     backfill_weather = Mock()
     load_weather_range = Mock()
@@ -43,7 +43,7 @@ def test_main_runs_backfill_with_parsed_dates(
 def test_main_uses_default_location_when_omitted(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    config = {"default_city": "New York"}
+    config = {"pipelines": {"weather": {"default_city": "New York"}}}
     backfill_weather = Mock()
     load_weather_range = Mock()
     monkeypatch.setattr(cli, "load_config", Mock(return_value=config))
@@ -72,7 +72,7 @@ def test_main_uses_default_location_when_omitted(
 def test_main_loads_existing_partitions_into_warehouse(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    config = {"default_city": "New York"}
+    config = {"pipelines": {"weather": {"default_city": "New York"}}}
     backfill_weather = Mock()
     load_weather_range = Mock(return_value=744)
     monkeypatch.setattr(cli, "load_config", Mock(return_value=config))
@@ -104,7 +104,7 @@ def test_main_loads_existing_partitions_into_warehouse(
 def test_main_runs_full_pipeline(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    config = {"default_city": "New York"}
+    config = {"pipelines": {"weather": {"default_city": "New York"}}}
     calls: list[str] = []
     backfill_weather = Mock(side_effect=lambda **kwargs: calls.append("backfill"))
     load_weather_range = Mock(

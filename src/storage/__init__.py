@@ -6,6 +6,8 @@ from .datasets import (
     WEATHER_OBSERVATIONS_FILENAME,
     WEATHER_PIPELINE_NAME,
     get_bike_counts_path,
+    get_bike_raw_counters_path,
+    get_bike_raw_counts_path,
     get_weather_observations_path,
     weather_observations_to_dataframe,
 )
@@ -21,6 +23,8 @@ __all__ = [
     "get_database_url",
     "get_engine",
     "get_bike_counts_path",
+    "get_bike_raw_counters_path",
+    "get_bike_raw_counts_path",
     "get_weather_observations_path",
     "metadata",
     "models_to_dataframe",

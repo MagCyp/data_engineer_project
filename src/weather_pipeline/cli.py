@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from helpers import parse_date
-from settings import load_config
+from settings import get_pipeline_config, load_config
 
 from .backfill import backfill_weather
 from .warehouse import load_weather_range
@@ -51,7 +51,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _selected_location(config: dict[str, Any], location: str | None) -> str:
-    return str(config["default_city"]) if location is None else location
+    weather_config = get_pipeline_config(config, "weather")
+    return (
+        str(weather_config["default_city"])
+        if location is None
+        else location
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> int:

@@ -4,13 +4,12 @@ from pathlib import Path
 
 from helpers import parse_date
 from settings import load_config
+from storage import get_bike_raw_counters_path, get_bike_raw_counts_path
 
 from .backfill import backfill_bike
 from .warehouse import load_bike_range
 
 COMMANDS = ("backfill", "warehouse", "pipeline")
-DEFAULT_COUNTS_FILE = Path("data/raw/bicycle_counts.csv")
-DEFAULT_COUNTERS_FILE = Path("data/raw/bicycle_counters.csv")
 
 
 def _add_date_arguments(parser: argparse.ArgumentParser) -> None:
@@ -32,14 +31,12 @@ def _add_source_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--counts-file",
         type=Path,
-        default=DEFAULT_COUNTS_FILE,
-        help=f"Bike counts CSV (default: {DEFAULT_COUNTS_FILE})",
+        help="Bike counts CSV (default: configured bike raw directory)",
     )
     parser.add_argument(
         "--counters-file",
         type=Path,
-        default=DEFAULT_COUNTERS_FILE,
-        help=f"Bike counter metadata CSV (default: {DEFAULT_COUNTERS_FILE})",
+        help="Bike counter metadata CSV (default: configured bike raw directory)",
     )
 
 
@@ -71,10 +68,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     config = load_config()
 
     if args.command in {"backfill", "pipeline"}:
+        counts_file_path = args.counts_file or get_bike_raw_counts_path(config)
+        counters_file_path = (
+            args.counters_file or get_bike_raw_counters_path(config)
+        )
         backfill_bike(
             config=config,
-            counts_file_path=args.counts_file,
-            counters_file_path=args.counters_file,
+            counts_file_path=counts_file_path,
+            counters_file_path=counters_file_path,
             start_date=args.start_date,
             end_date=args.end_date,
         )

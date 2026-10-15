@@ -2,6 +2,7 @@ from collections.abc import Mapping, Sequence
 from datetime import date
 from typing import Any
 
+from settings import get_api_config, get_pipeline_config
 from weather_pipeline.ingestion.client import get_weather_data
 from weather_pipeline.validation.models import (
     CityParams,
@@ -35,14 +36,21 @@ def fetch_weather_for_location(
     end_date: date,
 ) -> HourlyWeatherResponse:
     """Fetch historical hourly weather data for a given city name."""
-    selected_city = config["default_city"] if city_name is None else city_name
-    city_params = get_location_by_name(selected_city, config["locations"])
-    base_url = config["api"]["base_url"]
-    timeout_seconds = config["api"]["timeout_seconds"]
+    weather_config = get_pipeline_config(config, "weather")
+    api_config = get_api_config(config, str(weather_config["api"]))
+    selected_city = (
+        str(weather_config["default_city"])
+        if city_name is None
+        else city_name
+    )
+    city_params = get_location_by_name(
+        selected_city,
+        weather_config["locations"],
+    )
     return get_weather_data(
         city_params=city_params,
-        base_url=base_url,
-        timeout_seconds=timeout_seconds,
+        base_url=str(api_config["base_url"]),
+        timeout_seconds=int(api_config["timeout_seconds"]),
         start_date=start_date,
         end_date=end_date,
     )
