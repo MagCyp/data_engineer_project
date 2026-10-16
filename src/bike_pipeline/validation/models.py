@@ -1,8 +1,16 @@
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Annotated, Any
 
 import polars as pl
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, field_validator
+
+from common.validation import (
+    NaiveDateTime,
+    NonEmptyString,
+    NonNegativeInt,
+    PositiveInt,
+    UTCDateTime,
+)
 
 BIKE_SOURCE_DATETIME_FORMAT = "%m/%d/%Y %I:%M:%S %p"
 BIKE_LOCAL_TIMEZONE = "America/New_York"
@@ -11,6 +19,15 @@ BIKE_ALLOWED_STATUSES = frozenset({0, 1, 2, 4, 8, 16})
 BIKE_SOURCE_TIMEZONE_MAP = {
     "(UTC-05:00) US/Eastern;DST": BIKE_LOCAL_TIMEZONE,
 }
+
+
+def validate_bike_status(value: int) -> int:
+    if value not in BIKE_ALLOWED_STATUSES:
+        raise ValueError(f"unsupported bike status: {value}")
+    return value
+
+
+BikeStatus = Annotated[int, AfterValidator(validate_bike_status)]
 
 BIKE_RAW_CSV_SCHEMA = pl.Schema(
     {
@@ -64,8 +81,8 @@ BIKE_SILVER_SCHEMA = pl.Schema(
     }
 )
 
-PositiveIdentifier = Annotated[int, Field(gt=0)]
-NonNegativeCount = Annotated[int, Field(ge=0)]
+PositiveIdentifier = PositiveInt
+NonNegativeCount = NonNegativeInt
 
 
 class BikeSourceRecord(BaseModel):
@@ -77,7 +94,7 @@ class BikeSourceRecord(BaseModel):
     id: PositiveIdentifier
     date: datetime
     counts: NonNegativeCount
-    status: int
+    status: BikeStatus
 
     @field_validator("date", mode="before")
     @classmethod
@@ -93,14 +110,6 @@ class BikeSourceRecord(BaseModel):
             return value.replace(",", "")
         return value
 
-    @field_validator("status")
-    @classmethod
-    def validate_status(cls, value: int) -> int:
-        if value not in BIKE_ALLOWED_STATUSES:
-            raise ValueError(f"unsupported bike status: {value}")
-        return value
-
-
 class BikeObservation(BaseModel):
     """Normalized bike observation ready for Silver storage."""
 
@@ -108,30 +117,9 @@ class BikeObservation(BaseModel):
 
     record_id: PositiveIdentifier
     counter_id: PositiveIdentifier
-    timezone: str = Field(min_length=1)
-    observed_at_local: datetime
-    observed_at_utc: datetime
+    timezone: NonEmptyString
+    observed_at_local: NaiveDateTime
+    observed_at_utc: UTCDateTime
     bike_count: NonNegativeCount
-    status: int
-    ingested_at: datetime
-
-    @field_validator("observed_at_local")
-    @classmethod
-    def ensure_local_datetime_is_naive(cls, value: datetime) -> datetime:
-        if value.tzinfo is not None and value.utcoffset() is not None:
-            raise ValueError("observed_at_local must not contain a timezone")
-        return value
-
-    @field_validator("observed_at_utc", "ingested_at")
-    @classmethod
-    def ensure_datetime_is_utc(cls, value: datetime) -> datetime:
-        if value.tzinfo is None or value.utcoffset() is None:
-            raise ValueError("UTC timestamps must be timezone-aware")
-        return value.astimezone(UTC)
-
-    @field_validator("status")
-    @classmethod
-    def validate_status(cls, value: int) -> int:
-        if value not in BIKE_ALLOWED_STATUSES:
-            raise ValueError(f"unsupported bike status: {value}")
-        return value
+    status: BikeStatus
+    ingested_at: UTCDateTime

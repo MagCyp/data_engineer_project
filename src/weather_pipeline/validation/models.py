@@ -1,16 +1,22 @@
-from datetime import UTC, datetime
-from typing import Annotated, Self
+from datetime import datetime
+from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, model_validator
 
-Percentage = Annotated[int, Field(ge=0, le=100)]
-NonNegativeFloat = Annotated[float, Field(ge=0)]
+from common.validation import (
+    Latitude,
+    Longitude,
+    NonEmptyString,
+    NonNegativeFloat,
+    Percentage,
+    UTCDateTime,
+)
 
 
 class WeatherResponse(BaseModel):
-    latitude: float = Field(ge=-90, le=90)
-    longitude: float = Field(ge=-180, le=180)
-    generationtime_ms: float = Field(ge=0)
+    latitude: Latitude
+    longitude: Longitude
+    generationtime_ms: NonNegativeFloat
     utc_offset_seconds: int
     timezone: str
     timezone_abbreviation: str
@@ -57,30 +63,18 @@ class HourlyWeatherResponse(WeatherResponse):
 
 
 class WeatherObservation(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True)
-
-    location: str = Field(min_length=1)
-    timezone: str = Field(min_length=1)
-    time: datetime
+    location: NonEmptyString
+    timezone: NonEmptyString
+    time: UTCDateTime
     temperature_2m: float
     rain: NonNegativeFloat
     wind_speed_10m: NonNegativeFloat
     precipitation: NonNegativeFloat
     relative_humidity_2m: Percentage
-    ingested_at: datetime
-
-    @field_validator("time", "ingested_at")
-    @classmethod
-    def ensure_utc_datetime(cls, value: datetime) -> datetime:
-        if value.tzinfo is None or value.utcoffset() is None:
-            raise ValueError("weather observation timestamps must be timezone-aware")
-
-        return value.astimezone(UTC)
+    ingested_at: UTCDateTime
 
 
 class CityParams(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True)
-
-    name: str = Field(min_length=1)
-    latitude: float = Field(ge=-90, le=90)
-    longitude: float = Field(ge=-180, le=180)
+    name: NonEmptyString
+    latitude: Latitude
+    longitude: Longitude

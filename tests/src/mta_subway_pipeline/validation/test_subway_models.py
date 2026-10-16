@@ -43,7 +43,7 @@ def test_subway_source_record_rejects_timezone_aware_source_timestamp() -> None:
 
     with pytest.raises(
         ValidationError,
-        match="transit_timestamp must not contain a timezone",
+        match="local timestamps must not contain a timezone",
     ):
         SubwaySourceRecord.model_validate(payload)
 

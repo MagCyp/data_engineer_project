@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+from common.validation import normalize_utc_datetime
 from weather_pipeline.validation.models import (
     HourlyWeatherResponse,
     WeatherObservation,
@@ -8,7 +9,7 @@ from weather_pipeline.validation.models import (
 
 def _to_utc(value: datetime, source_timezone: str) -> datetime:
     if value.tzinfo is not None and value.utcoffset() is not None:
-        return value.astimezone(UTC)
+        return normalize_utc_datetime(value)
 
     if source_timezone not in {"GMT", "UTC"}:
         raise ValueError(
