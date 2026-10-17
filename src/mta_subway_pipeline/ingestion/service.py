@@ -1,13 +1,17 @@
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from mta_subway_pipeline.ingestion.client import (
     SOCRATA_MAX_PAGE_SIZE,
     iter_subway_data,
 )
-from mta_subway_pipeline.validation.models import SubwaySourceRecord
+from mta_subway_pipeline.validation.models import (
+    SUBWAY_LOCAL_TIMEZONE,
+    SubwaySourceRecord,
+)
 from settings import get_api_config, get_pipeline_config
 
 
@@ -27,6 +31,23 @@ class _SubwayDataset:
     start_date: date
     end_date: date
     incremental: bool
+
+
+def _current_date() -> date:
+    return datetime.now(ZoneInfo(SUBWAY_LOCAL_TIMEZONE)).date()
+
+
+def _shift_end_from_current_week(end_date: date) -> date:
+    today = _current_date()
+    end_week = end_date.isocalendar()
+    current_week = today.isocalendar()
+    if (end_week.year, end_week.week) == (
+        current_week.year,
+        current_week.week,
+    ):
+        # Current-week data may not be ready because the source updates weekly.
+        return end_date - timedelta(weeks=1)
+    return end_date
 
 
 def _year(
@@ -140,6 +161,12 @@ def _dataset_slices(
                 f"No subway dataset covers {cursor} through {missing_end}"
             )
 
+        requested_slice_end = slice_end
+        if dataset.end_date == date.max:
+            slice_end = _shift_end_from_current_week(slice_end)
+            if slice_end < slice_start:
+                return slices
+
         slices.append(
             SubwayDatasetSlice(
                 name=dataset.name,
@@ -150,6 +177,8 @@ def _dataset_slices(
             )
         )
         if slice_end == end_date:
+            return slices
+        if slice_end < requested_slice_end:
             return slices
         cursor = slice_end + timedelta(days=1)
 

@@ -65,6 +65,49 @@ def test_get_subway_dataset_slices_splits_range_between_resources() -> None:
     )
 
 
+def test_open_dataset_shifts_end_date_when_it_is_in_current_week(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(service, "_current_date", lambda: date(2026, 10, 17))
+
+    slices = service.get_subway_dataset_slices(
+        make_config(),
+        start_date=date(2026, 10, 1),
+        end_date=date(2026, 10, 17),
+    )
+
+    assert len(slices) == 1
+    assert slices[0].resource_id == "5wq4-mkjj"
+    assert slices[0].end_date == date(2026, 10, 10)
+
+
+def test_open_dataset_keeps_end_date_from_previous_week(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(service, "_current_date", lambda: date(2026, 10, 17))
+
+    slices = service.get_subway_dataset_slices(
+        make_config(),
+        start_date=date(2026, 10, 1),
+        end_date=date(2026, 10, 11),
+    )
+
+    assert len(slices) == 1
+    assert slices[0].end_date == date(2026, 10, 11)
+
+
+def test_open_dataset_returns_no_slice_when_shift_precedes_start(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(service, "_current_date", lambda: date(2026, 10, 17))
+
+    assert service.get_subway_dataset_slices(
+        make_config(),
+        start_date=date(2026, 10, 12),
+        end_date=date(2026, 10, 17),
+    ) == []
+
+
 def test_fetch_subway_data_delegates_each_slice_to_client(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
