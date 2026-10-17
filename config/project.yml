@@ -36,7 +36,6 @@ pipelines:
 
   mta_subway:
     api: ny_open_data
-    api_url: https://data.ny.gov/resource 
     datasets:
       hourly_ridership_2017_2019:
         resource_id: t69i-h2me
