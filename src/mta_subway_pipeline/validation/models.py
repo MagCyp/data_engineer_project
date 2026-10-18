@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Literal, Self
 
+import polars as pl
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from common.validation import (
@@ -13,19 +14,59 @@ from common.validation import (
 )
 
 SUBWAY_LOCAL_TIMEZONE = "America/New_York"
-SUBWAY_SOURCE_FIELDS = (
-    "transit_timestamp",
+SUBWAY_AMBIGUOUS_TIME_POLICY = "earliest"
+SUBWAY_SOURCE_SCHEMA = pl.Schema(
+    {
+        "transit_timestamp": pl.Datetime(time_unit="us"),
+        "transit_mode": pl.String,
+        "station_complex_id": pl.String,
+        "station_complex": pl.String,
+        "borough": pl.String,
+        "payment_method": pl.String,
+        "fare_class_category": pl.String,
+        "ridership": pl.Float64,
+        "transfers": pl.Float64,
+        "latitude": pl.Float64,
+        "longitude": pl.Float64,
+        "georeference": pl.Struct(
+            {
+                "type": pl.String,
+                "coordinates": pl.List(pl.Float64),
+            }
+        ),
+    }
+)
+SUBWAY_SOURCE_FIELDS = tuple(SUBWAY_SOURCE_SCHEMA.names())
+SUBWAY_BRONZE_SCHEMA = pl.Schema(
+    {
+        **SUBWAY_SOURCE_SCHEMA,
+        "ingested_at": pl.Datetime(time_unit="us", time_zone="UTC"),
+    }
+)
+SUBWAY_SILVER_SCHEMA = pl.Schema(
+    {
+        "observed_at_local": pl.Datetime(time_unit="us"),
+        "observed_at_utc": pl.Datetime(time_unit="us", time_zone="UTC"),
+        "timezone": pl.String,
+        "transit_mode": pl.String,
+        "station_complex_id": pl.String,
+        "station_complex": pl.String,
+        "borough": pl.String,
+        "payment_method": pl.String,
+        "fare_class_category": pl.String,
+        "ridership": pl.Float64,
+        "transfers": pl.Float64,
+        "latitude": pl.Float64,
+        "longitude": pl.Float64,
+        "ingested_at": pl.Datetime(time_unit="us", time_zone="UTC"),
+    }
+)
+SUBWAY_GRAIN_COLUMNS = (
+    "observed_at_utc",
     "transit_mode",
     "station_complex_id",
-    "station_complex",
-    "borough",
     "payment_method",
     "fare_class_category",
-    "ridership",
-    "transfers",
-    "latitude",
-    "longitude",
-    "georeference",
 )
 
 
@@ -72,4 +113,5 @@ class SubwaySourceRecord(_SubwayRidership):
 class SubwayObservation(_SubwayRidership):
     observed_at_local: NaiveDateTime
     observed_at_utc: UTCDateTime
+    timezone: NonEmptyString
     ingested_at: UTCDateTime
