@@ -52,6 +52,10 @@ models:
         description: Identifier of the bicycle counter.
         data_tests:
           - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_mobility__bike_counters')
+                field: counter_id
 
       - name: timezone
         description: IANA timezone used for the observation.
@@ -72,6 +76,54 @@ models:
 
       - name: ingested_at
         description: UTC timestamp when the Python pipeline ingested the row.
+
+  - name: stg_mobility__bike_counters
+    description: >-
+      Bicycle counter reference data loaded from the bicycle_counters seed,
+      with normalized column names and coordinate types.
+    columns:
+      - name: counter_id
+        description: Unique identifier of the bicycle counter.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: counter_name
+        description: Human-readable bicycle counter name.
+
+      - name: domain_name
+        description: Domain name supplied by the source.
+
+      - name: latitude
+        description: Counter latitude in decimal degrees.
+
+      - name: longitude
+        description: Counter longitude in decimal degrees.
+
+      - name: recording_interval_minutes
+        description: Data recording interval in minutes, normally 15 or 60.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [15, 60]
+                quote: false
+
+      - name: source_timezone
+        description: Timezone label supplied by the source.
+
+      - name: direction_detection_code
+        description: >-
+          Direction detection code: 1 means IN, 2 means OUT, and 5 means
+          the counter does not distinguish direction.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['1', '2', '5']
+
+      - name: counter_serial_number
+        description: >-
+          Serial number of the physical counter currently linked to the
+          counting site, when available.
 
   - name: stg_mobility__subway_ridership
     description: >-
