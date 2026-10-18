@@ -1,6 +1,8 @@
 import re
+import time
 from collections.abc import Iterator
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
+from email.utils import parsedate_to_datetime
 from typing import Any
 
 import httpx
@@ -11,6 +13,10 @@ from mta_subway_pipeline.validation.models import (
 )
 
 SOCRATA_MAX_PAGE_SIZE = 50_000
+SOCRATA_DEFAULT_MAX_RETRIES = 3
+SOCRATA_DEFAULT_RETRY_BASE_DELAY_SECONDS = 1.0
+SOCRATA_DEFAULT_RETRY_MAX_DELAY_SECONDS = 60.0
+SOCRATA_RETRYABLE_STATUS_CODES = frozenset({429, 502, 503, 504})
 SOCRATA_RESOURCE_ID_PATTERN = re.compile(r"^[a-z0-9]{4}-[a-z0-9]{4}$")
 SUBWAY_RESULT_ORDER = (
     "transit_timestamp",
@@ -79,37 +85,94 @@ def _request_page(
     params: dict[str, str | int],
     timeout_seconds: int,
     app_token: str | None,
+    max_retries: int,
+    retry_base_delay_seconds: float,
+    retry_max_delay_seconds: float,
 ) -> list[SubwaySourceRecord]:
-    try:
-        if app_token is None:
-            response = httpx.get(
-                url,
-                params=params,
-                timeout=timeout_seconds,
+    for retry_number in range(max_retries + 1):
+        try:
+            if app_token is None:
+                response = httpx.get(
+                    url,
+                    params=params,
+                    timeout=timeout_seconds,
+                )
+            else:
+                response = httpx.get(
+                    url,
+                    params=params,
+                    headers={"X-App-Token": app_token},
+                    timeout=timeout_seconds,
+                )
+        except httpx.RequestError as error:
+            if retry_number < max_retries:
+                time.sleep(
+                    _retry_delay_seconds(
+                        retry_number=retry_number,
+                        base_delay_seconds=retry_base_delay_seconds,
+                        max_delay_seconds=retry_max_delay_seconds,
+                    )
+                )
+                continue
+            raise RuntimeError(
+                f"An error occurred while requesting subway data: {error}"
+            ) from error
+
+        if (
+            response.status_code in SOCRATA_RETRYABLE_STATUS_CODES
+            and retry_number < max_retries
+        ):
+            time.sleep(
+                _retry_delay_seconds(
+                    retry_number=retry_number,
+                    base_delay_seconds=retry_base_delay_seconds,
+                    max_delay_seconds=retry_max_delay_seconds,
+                    response=response,
+                )
             )
-        else:
-            response = httpx.get(
-                url,
-                params=params,
-                headers={"X-App-Token": app_token},
-                timeout=timeout_seconds,
-            )
-        response.raise_for_status()
-    except httpx.RequestError as error:
-        raise RuntimeError(
-            f"An error occurred while requesting subway data: {error}"
-        ) from error
-    except httpx.HTTPStatusError as error:
-        raise RuntimeError(
-            "HTTP error occurred while requesting subway data: "
-            f"{error.response.status_code} - {error.response.text}"
-        ) from error
+            continue
+
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as error:
+            raise RuntimeError(
+                "HTTP error occurred while requesting subway data: "
+                f"{error.response.status_code} - {error.response.text}"
+            ) from error
+        break
 
     payload: Any = response.json()
     if not isinstance(payload, list):
         raise RuntimeError("Subway API response must be a JSON array")
 
     return [SubwaySourceRecord.model_validate(record) for record in payload]
+
+
+def _retry_delay_seconds(
+    *,
+    retry_number: int,
+    base_delay_seconds: float,
+    max_delay_seconds: float,
+    response: httpx.Response | None = None,
+) -> float:
+    if response is not None:
+        retry_after = response.headers.get("Retry-After")
+        if retry_after is not None:
+            try:
+                delay = float(retry_after)
+            except ValueError:
+                try:
+                    retry_at = parsedate_to_datetime(retry_after)
+                    if retry_at.tzinfo is None:
+                        retry_at = retry_at.replace(tzinfo=UTC)
+                    delay = (retry_at - datetime.now(UTC)).total_seconds()
+                except (TypeError, ValueError, OverflowError):
+                    delay = -1
+            if delay >= 0:
+                return min(delay, max_delay_seconds)
+
+    exponential_delay = base_delay_seconds * (2**retry_number)
+    return min(exponential_delay, max_delay_seconds)
 
 
 def iter_subway_data(
@@ -122,6 +185,11 @@ def iter_subway_data(
     response_format: str = "json",
     page_size: int = SOCRATA_MAX_PAGE_SIZE,
     app_token: str | None = None,
+    max_retries: int = SOCRATA_DEFAULT_MAX_RETRIES,
+    retry_base_delay_seconds: float = (
+        SOCRATA_DEFAULT_RETRY_BASE_DELAY_SECONDS
+    ),
+    retry_max_delay_seconds: float = SOCRATA_DEFAULT_RETRY_MAX_DELAY_SECONDS,
 ) -> Iterator[SubwaySourceRecord]:
     url = _build_dataset_url(base_url, resource_id, response_format)
     if timeout_seconds <= 0:
@@ -130,6 +198,26 @@ def iter_subway_data(
         app_token = app_token.strip()
         if not app_token:
             raise ValueError("app_token must not be blank")
+    if isinstance(max_retries, bool) or not isinstance(max_retries, int):
+        raise ValueError("max_retries must be an integer")
+    if max_retries < 0:
+        raise ValueError("max_retries must be greater than or equal to 0")
+    if (
+        isinstance(retry_base_delay_seconds, bool)
+        or not isinstance(retry_base_delay_seconds, int | float)
+        or retry_base_delay_seconds < 0
+    ):
+        raise ValueError(
+            "retry_base_delay_seconds must be a non-negative number"
+        )
+    if (
+        isinstance(retry_max_delay_seconds, bool)
+        or not isinstance(retry_max_delay_seconds, int | float)
+        or retry_max_delay_seconds < 0
+    ):
+        raise ValueError(
+            "retry_max_delay_seconds must be a non-negative number"
+        )
 
     offset = 0
     while True:
@@ -139,7 +227,15 @@ def iter_subway_data(
             page_size=page_size,
             offset=offset,
         )
-        page = _request_page(url, params, timeout_seconds, app_token)
+        page = _request_page(
+            url,
+            params,
+            timeout_seconds,
+            app_token,
+            max_retries,
+            float(retry_base_delay_seconds),
+            float(retry_max_delay_seconds),
+        )
         yield from page
 
         if len(page) < page_size:
@@ -157,6 +253,11 @@ def get_subway_data(
     response_format: str = "json",
     page_size: int = SOCRATA_MAX_PAGE_SIZE,
     app_token: str | None = None,
+    max_retries: int = SOCRATA_DEFAULT_MAX_RETRIES,
+    retry_base_delay_seconds: float = (
+        SOCRATA_DEFAULT_RETRY_BASE_DELAY_SECONDS
+    ),
+    retry_max_delay_seconds: float = SOCRATA_DEFAULT_RETRY_MAX_DELAY_SECONDS,
 ) -> list[SubwaySourceRecord]:
     return list(
         iter_subway_data(
@@ -168,5 +269,8 @@ def get_subway_data(
             response_format=response_format,
             page_size=page_size,
             app_token=app_token,
+            max_retries=max_retries,
+            retry_base_delay_seconds=retry_base_delay_seconds,
+            retry_max_delay_seconds=retry_max_delay_seconds,
         )
     )

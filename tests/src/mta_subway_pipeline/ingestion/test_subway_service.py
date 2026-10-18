@@ -14,6 +14,9 @@ def make_config() -> dict[str, object]:
                 "base_url": "https://data.ny.gov/resource",
                 "response_format": "json",
                 "timeout_seconds": 60,
+                "max_retries": 3,
+                "retry_base_delay_seconds": 1,
+                "retry_max_delay_seconds": 60,
             }
         },
         "pipelines": {
@@ -137,6 +140,9 @@ def test_fetch_subway_data_delegates_each_slice_to_client(
             response_format="json",
             page_size=1000,
             app_token="token",
+            max_retries=3,
+            retry_base_delay_seconds=1,
+            retry_max_delay_seconds=60,
         ),
         call(
             resource_id="5wq4-mkjj",
@@ -147,6 +153,9 @@ def test_fetch_subway_data_delegates_each_slice_to_client(
             response_format="json",
             page_size=1000,
             app_token="token",
+            max_retries=3,
+            retry_base_delay_seconds=1,
+            retry_max_delay_seconds=60,
         ),
     ]
 

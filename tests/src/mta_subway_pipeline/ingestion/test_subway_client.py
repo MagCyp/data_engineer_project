@@ -6,6 +6,7 @@ from unittest.mock import Mock
 import httpx
 import pytest
 
+from mta_subway_pipeline.ingestion import client
 from mta_subway_pipeline.ingestion.client import get_subway_data
 
 
@@ -34,6 +35,7 @@ def make_response(
     *,
     json: Any = None,
     text: str | None = None,
+    headers: dict[str, str] | None = None,
 ) -> httpx.Response:
     request = httpx.Request(
         "GET",
@@ -43,6 +45,7 @@ def make_response(
         status_code,
         json=json,
         text=text,
+        headers=headers,
         request=request,
     )
 
@@ -152,6 +155,103 @@ def test_get_subway_data_wraps_request_errors(
             timeout_seconds=60,
             start_date=date(2025, 1, 15),
             end_date=date(2025, 1, 15),
+            max_retries=0,
         )
 
     assert isinstance(exc_info.value.__cause__, httpx.RequestError)
+
+
+def test_get_subway_data_retries_429_using_retry_after(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    http_get = Mock(
+        side_effect=[
+            make_response(
+                429,
+                text="rate limited",
+                headers={"Retry-After": "3"},
+            ),
+            make_response(
+                200,
+                json=[make_record("2025-01-15T08:00:00.000")],
+            ),
+        ]
+    )
+    sleep = Mock()
+    monkeypatch.setattr(httpx, "get", http_get)
+    monkeypatch.setattr(client.time, "sleep", sleep)
+
+    records = get_subway_data(
+        resource_id="5wq4-mkjj",
+        base_url="https://data.ny.gov/resource",
+        timeout_seconds=60,
+        start_date=date(2025, 1, 15),
+        end_date=date(2025, 1, 15),
+        max_retries=1,
+    )
+
+    assert len(records) == 1
+    assert http_get.call_count == 2
+    sleep.assert_called_once_with(3.0)
+
+
+def test_get_subway_data_retries_temporary_network_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = httpx.Request(
+        "GET",
+        "https://data.ny.gov/resource/5wq4-mkjj.json",
+    )
+    http_get = Mock(
+        side_effect=[
+            httpx.ReadTimeout("request timed out", request=request),
+            make_response(200, json=[]),
+        ]
+    )
+    sleep = Mock()
+    monkeypatch.setattr(httpx, "get", http_get)
+    monkeypatch.setattr(client.time, "sleep", sleep)
+
+    records = get_subway_data(
+        resource_id="5wq4-mkjj",
+        base_url="https://data.ny.gov/resource",
+        timeout_seconds=60,
+        start_date=date(2025, 1, 15),
+        end_date=date(2025, 1, 15),
+        max_retries=1,
+        retry_base_delay_seconds=0.5,
+    )
+
+    assert records == []
+    assert http_get.call_count == 2
+    sleep.assert_called_once_with(0.5)
+
+
+def test_get_subway_data_raises_after_retries_are_exhausted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    http_get = Mock(
+        side_effect=[
+            make_response(503, text="unavailable"),
+            make_response(503, text="still unavailable"),
+            make_response(503, text="unavailable after retries"),
+        ]
+    )
+    sleep = Mock()
+    monkeypatch.setattr(httpx, "get", http_get)
+    monkeypatch.setattr(client.time, "sleep", sleep)
+
+    with pytest.raises(RuntimeError, match="503"):
+        get_subway_data(
+            resource_id="5wq4-mkjj",
+            base_url="https://data.ny.gov/resource",
+            timeout_seconds=60,
+            start_date=date(2025, 1, 15),
+            end_date=date(2025, 1, 15),
+            max_retries=2,
+            retry_base_delay_seconds=1,
+            retry_max_delay_seconds=10,
+        )
+
+    assert http_get.call_count == 3
+    assert [call.args[0] for call in sleep.call_args_list] == [1.0, 2.0]

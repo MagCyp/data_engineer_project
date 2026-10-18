@@ -5,6 +5,9 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from mta_subway_pipeline.ingestion.client import (
+    SOCRATA_DEFAULT_MAX_RETRIES,
+    SOCRATA_DEFAULT_RETRY_BASE_DELAY_SECONDS,
+    SOCRATA_DEFAULT_RETRY_MAX_DELAY_SECONDS,
     SOCRATA_MAX_PAGE_SIZE,
     iter_subway_data,
 )
@@ -227,6 +230,18 @@ def iter_subway_records(
             response_format=str(api_config.get("response_format", "json")),
             page_size=page_size,
             app_token=app_token,
+            max_retries=api_config.get(
+                "max_retries",
+                SOCRATA_DEFAULT_MAX_RETRIES,
+            ),
+            retry_base_delay_seconds=api_config.get(
+                "retry_base_delay_seconds",
+                SOCRATA_DEFAULT_RETRY_BASE_DELAY_SECONDS,
+            ),
+            retry_max_delay_seconds=api_config.get(
+                "retry_max_delay_seconds",
+                SOCRATA_DEFAULT_RETRY_MAX_DELAY_SECONDS,
+            ),
         )
 
 
