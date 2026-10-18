@@ -70,7 +70,10 @@ def test_validate_silver_weather_rejects_invalid_rows(
 def test_validate_silver_weather_rejects_missing_columns() -> None:
     dataframe = pl.DataFrame([silver_row()]).drop("rain_mm")
 
-    with pytest.raises(ValueError, match="Missing silver columns: rain_mm"):
+    with pytest.raises(
+        ValueError,
+        match="Missing Silver weather columns: rain_mm",
+    ):
         validate_silver_weather(dataframe)
 
 
@@ -81,6 +84,6 @@ def test_validate_silver_weather_rejects_naive_observation_time() -> None:
 
     with pytest.raises(
         ValueError,
-        match="Silver column 'observed_at_utc' must use UTC timezone",
+        match="Silver weather column 'observed_at_utc' must use",
     ):
         validate_silver_weather(dataframe)

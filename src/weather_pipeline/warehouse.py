@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from datetime import date
 from typing import Any
 
-from helpers import iter_month_ranges
+from common import load_monthly_partitions
 from storage.datasets import get_weather_observations_path
 
 from .load import load_weather
@@ -17,20 +17,16 @@ def load_weather_range(
     end_date: date,
 ) -> int:
     """Load monthly Silver weather partitions into the database."""
-    loaded_rows = 0
-
-    for month_start, _ in iter_month_ranges(start_date, end_date):
-        silver_path = get_weather_observations_path(
+    return load_monthly_partitions(
+        start_date,
+        end_date,
+        path_for_month=lambda year, month: get_weather_observations_path(
             config,
             location=location,
-            year=month_start.year,
-            month=month_start.month,
+            year=year,
+            month=month,
             storage_key="silver_path",
-        )
-        if not silver_path.is_file():
-            raise FileNotFoundError(
-                f"Silver weather partition does not exist: {silver_path}"
-            )
-        loaded_rows += load_weather(silver_path)
-
-    return loaded_rows
+        ),
+        load_partition=load_weather,
+        name="weather",
+    )

@@ -4,7 +4,7 @@ from collections.abc import Sequence
 
 from dotenv import load_dotenv
 
-from helpers import parse_date
+from helpers import add_date_arguments
 from settings import load_config
 
 from .backfill import backfill_subway
@@ -13,21 +13,6 @@ from .warehouse import load_subway_range
 
 COMMANDS = ("backfill", "warehouse", "pipeline")
 SOCRATA_APP_TOKEN_ENV = "SOCRATA_APP_TOKEN"
-
-
-def _add_date_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
-        "--start-date",
-        type=parse_date,
-        required=True,
-        help="First date to process (YYYY-MM-DD)",
-    )
-    parser.add_argument(
-        "--end-date",
-        type=parse_date,
-        required=True,
-        help="Last date to process (YYYY-MM-DD)",
-    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -45,7 +30,7 @@ def build_parser() -> argparse.ArgumentParser:
             command,
             help=descriptions[command],
         )
-        _add_date_arguments(command_parser)
+        add_date_arguments(command_parser)
         if command in {"backfill", "pipeline"}:
             command_parser.add_argument(
                 "--page-size",

@@ -2,7 +2,7 @@ from collections.abc import Mapping
 from datetime import UTC, date, datetime
 from typing import Any
 
-from helpers import iter_month_ranges
+from helpers import iter_month_ranges, validate_date_range
 
 from .ingestion import SOCRATA_MAX_PAGE_SIZE
 from .pipeline import process_subway_month
@@ -17,8 +17,7 @@ def backfill_subway(
     app_token: str | None = None,
 ) -> None:
     """Download and write all requested monthly subway partitions."""
-    if start_date > end_date:
-        raise ValueError("start_date must be less than or equal to end_date")
+    validate_date_range(start_date, end_date)
 
     ingested_at = datetime.now(UTC)
     for month_start, month_end in iter_month_ranges(start_date, end_date):

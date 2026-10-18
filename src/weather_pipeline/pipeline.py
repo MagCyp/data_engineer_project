@@ -2,6 +2,7 @@ from collections.abc import Mapping
 from datetime import date
 from typing import Any
 
+from helpers import validate_month_range
 from storage import (
     get_weather_observations_path,
     save_as_parquet,
@@ -23,8 +24,7 @@ def process_weather_month(
     end_date: date,
 ) -> None:
     """Process weather data for a specific month."""
-    if (start_date.year, start_date.month) != (end_date.year, end_date.month):
-        raise ValueError("start_date and end_date must belong to the same month")
+    validate_month_range(start_date, end_date)
 
     weather_raw_data = fetch_weather_for_location(
         config,

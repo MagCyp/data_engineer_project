@@ -8,7 +8,6 @@ from bike_pipeline.validation.models import (
 
 from .reader import (
     get_ranged_data,
-    read_bike_source_file,
     scan_bike_counters_csv,
     scan_bike_csv,
 )
@@ -23,7 +22,6 @@ __all__ = [
     "get_ranged_data",
     "read_bike_counter_data",
     "read_bike_data",
-    "read_bike_source_file",
     "scan_bike_csv",
     "scan_bike_counters_csv",
 ]

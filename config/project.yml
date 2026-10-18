@@ -44,21 +44,18 @@ pipelines:
         resource_id: t69i-h2me
         start_year: 2017
         end_year: 2019
-        incremental: false
         about_url: https://data.ny.gov/Transportation/MTA-Subway-Hourly-Ridership-2017-2019/t69i-h2me/about_data
 
       hourly_ridership_2020_2024:
         resource_id: wujg-7c2s
         start_year: 2020
         end_year: 2024
-        incremental: false
         about_url: https://data.ny.gov/Transportation/MTA-Subway-Hourly-Ridership-2020-2024/wujg-7c2s/about_data
 
       hourly_ridership_2025_present:
         resource_id: 5wq4-mkjj
         start_year: 2025
         end_year: null
-        incremental: true
         about_url: https://data.ny.gov/Transportation/MTA-Subway-Hourly-Ridership-Beginning-2025/5wq4-mkjj/about_data
 
 storage:

@@ -2,7 +2,7 @@ import argparse
 from collections.abc import Sequence
 from typing import Any
 
-from helpers import parse_date
+from helpers import add_date_arguments
 from settings import get_pipeline_config, load_config
 
 from .backfill import backfill_weather
@@ -16,18 +16,7 @@ def _add_common_arguments(parser: argparse.ArgumentParser) -> None:
         "--location",
         help="Location to process (uses default_city when omitted)",
     )
-    parser.add_argument(
-        "--start-date",
-        type=parse_date,
-        required=True,
-        help="First date to process (YYYY-MM-DD)",
-    )
-    parser.add_argument(
-        "--end-date",
-        type=parse_date,
-        required=True,
-        help="Last date to process (YYYY-MM-DD)",
-    )
+    add_date_arguments(parser)
 
 
 def build_parser() -> argparse.ArgumentParser:

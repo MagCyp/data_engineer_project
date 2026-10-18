@@ -1,12 +1,14 @@
 import re
 import time
 from collections.abc import Iterator
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from email.utils import parsedate_to_datetime
 from typing import Any
 
 import httpx
 
+from helpers import validate_date_range
 from mta_subway_pipeline.validation.models import (
     SUBWAY_SOURCE_FIELDS,
     SubwaySourceRecord,
@@ -25,6 +27,46 @@ SUBWAY_RESULT_ORDER = (
     "payment_method",
     "fare_class_category",
 )
+
+
+@dataclass(frozen=True, slots=True)
+class _RetryPolicy:
+    max_retries: int
+    base_delay_seconds: float
+    max_delay_seconds: float
+
+    def __post_init__(self) -> None:
+        if isinstance(self.max_retries, bool) or not isinstance(
+            self.max_retries,
+            int,
+        ):
+            raise ValueError("max_retries must be an integer")
+        if self.max_retries < 0:
+            raise ValueError("max_retries must be greater than or equal to 0")
+
+        for name, value in (
+            ("retry_base_delay_seconds", self.base_delay_seconds),
+            ("retry_max_delay_seconds", self.max_delay_seconds),
+        ):
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, int | float)
+                or value < 0
+            ):
+                raise ValueError(f"{name} must be a non-negative number")
+
+    def delay(
+        self,
+        retry_number: int,
+        response: httpx.Response | None = None,
+    ) -> float:
+        retry_after = _retry_after_seconds(response)
+        if retry_after is not None:
+            return min(retry_after, self.max_delay_seconds)
+        return min(
+            self.base_delay_seconds * (2**retry_number),
+            self.max_delay_seconds,
+        )
 
 
 def _build_dataset_url(
@@ -53,8 +95,7 @@ def _build_query_params(
     page_size: int,
     offset: int,
 ) -> dict[str, str | int]:
-    if start_date > end_date:
-        raise ValueError("start_date must be before or equal to end_date")
+    validate_date_range(start_date, end_date)
     if isinstance(page_size, bool) or not 1 <= page_size <= SOCRATA_MAX_PAGE_SIZE:
         raise ValueError(f"page_size must be between 1 and {SOCRATA_MAX_PAGE_SIZE}")
     if offset < 0:
@@ -85,34 +126,20 @@ def _request_page(
     params: dict[str, str | int],
     timeout_seconds: int,
     app_token: str | None,
-    max_retries: int,
-    retry_base_delay_seconds: float,
-    retry_max_delay_seconds: float,
+    retry_policy: _RetryPolicy,
 ) -> list[SubwaySourceRecord]:
-    for retry_number in range(max_retries + 1):
+    headers = None if app_token is None else {"X-App-Token": app_token}
+    for retry_number in range(retry_policy.max_retries + 1):
         try:
-            if app_token is None:
-                response = httpx.get(
-                    url,
-                    params=params,
-                    timeout=timeout_seconds,
-                )
-            else:
-                response = httpx.get(
-                    url,
-                    params=params,
-                    headers={"X-App-Token": app_token},
-                    timeout=timeout_seconds,
-                )
+            response = httpx.get(
+                url,
+                params=params,
+                headers=headers,
+                timeout=timeout_seconds,
+            )
         except httpx.RequestError as error:
-            if retry_number < max_retries:
-                time.sleep(
-                    _retry_delay_seconds(
-                        retry_number=retry_number,
-                        base_delay_seconds=retry_base_delay_seconds,
-                        max_delay_seconds=retry_max_delay_seconds,
-                    )
-                )
+            if retry_number < retry_policy.max_retries:
+                time.sleep(retry_policy.delay(retry_number))
                 continue
             raise RuntimeError(
                 f"An error occurred while requesting subway data: {error}"
@@ -120,16 +147,9 @@ def _request_page(
 
         if (
             response.status_code in SOCRATA_RETRYABLE_STATUS_CODES
-            and retry_number < max_retries
+            and retry_number < retry_policy.max_retries
         ):
-            time.sleep(
-                _retry_delay_seconds(
-                    retry_number=retry_number,
-                    base_delay_seconds=retry_base_delay_seconds,
-                    max_delay_seconds=retry_max_delay_seconds,
-                    response=response,
-                )
-            )
+            time.sleep(retry_policy.delay(retry_number, response))
             continue
 
         try:
@@ -148,31 +168,22 @@ def _request_page(
     return [SubwaySourceRecord.model_validate(record) for record in payload]
 
 
-def _retry_delay_seconds(
-    *,
-    retry_number: int,
-    base_delay_seconds: float,
-    max_delay_seconds: float,
-    response: httpx.Response | None = None,
-) -> float:
-    if response is not None:
-        retry_after = response.headers.get("Retry-After")
-        if retry_after is not None:
-            try:
-                delay = float(retry_after)
-            except ValueError:
-                try:
-                    retry_at = parsedate_to_datetime(retry_after)
-                    if retry_at.tzinfo is None:
-                        retry_at = retry_at.replace(tzinfo=UTC)
-                    delay = (retry_at - datetime.now(UTC)).total_seconds()
-                except (TypeError, ValueError, OverflowError):
-                    delay = -1
-            if delay >= 0:
-                return min(delay, max_delay_seconds)
+def _retry_after_seconds(response: httpx.Response | None) -> float | None:
+    if response is None or "Retry-After" not in response.headers:
+        return None
 
-    exponential_delay = base_delay_seconds * (2**retry_number)
-    return min(exponential_delay, max_delay_seconds)
+    retry_after = response.headers["Retry-After"]
+    try:
+        delay = float(retry_after)
+    except ValueError:
+        try:
+            retry_at = parsedate_to_datetime(retry_after)
+            if retry_at.tzinfo is None:
+                retry_at = retry_at.replace(tzinfo=UTC)
+            delay = (retry_at - datetime.now(UTC)).total_seconds()
+        except (TypeError, ValueError, OverflowError):
+            return None
+    return max(delay, 0)
 
 
 def iter_subway_data(
@@ -198,26 +209,11 @@ def iter_subway_data(
         app_token = app_token.strip()
         if not app_token:
             raise ValueError("app_token must not be blank")
-    if isinstance(max_retries, bool) or not isinstance(max_retries, int):
-        raise ValueError("max_retries must be an integer")
-    if max_retries < 0:
-        raise ValueError("max_retries must be greater than or equal to 0")
-    if (
-        isinstance(retry_base_delay_seconds, bool)
-        or not isinstance(retry_base_delay_seconds, int | float)
-        or retry_base_delay_seconds < 0
-    ):
-        raise ValueError(
-            "retry_base_delay_seconds must be a non-negative number"
-        )
-    if (
-        isinstance(retry_max_delay_seconds, bool)
-        or not isinstance(retry_max_delay_seconds, int | float)
-        or retry_max_delay_seconds < 0
-    ):
-        raise ValueError(
-            "retry_max_delay_seconds must be a non-negative number"
-        )
+    retry_policy = _RetryPolicy(
+        max_retries=max_retries,
+        base_delay_seconds=retry_base_delay_seconds,
+        max_delay_seconds=retry_max_delay_seconds,
+    )
 
     offset = 0
     while True:
@@ -232,9 +228,7 @@ def iter_subway_data(
             params,
             timeout_seconds,
             app_token,
-            max_retries,
-            float(retry_base_delay_seconds),
-            float(retry_max_delay_seconds),
+            retry_policy,
         )
         yield from page
 

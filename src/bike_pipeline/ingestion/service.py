@@ -3,10 +3,12 @@ from pathlib import Path
 
 import polars as pl
 
+from helpers import validate_date_range
+
 from .reader import (
     get_ranged_data,
-    read_bike_source_file,
     scan_bike_counters_csv,
+    scan_bike_csv,
 )
 
 
@@ -17,11 +19,10 @@ def read_bike_data(
     end_date: date,
 ) -> pl.DataFrame:
     """Read an inclusive date range from the raw bike CSV source."""
-    if start_date > end_date:
-        raise ValueError("start_date must be less than or equal to end_date")
+    validate_date_range(start_date, end_date)
 
     query = get_ranged_data(
-        read_bike_source_file(file_path),
+        scan_bike_csv(file_path),
         start_date,
         end_date,
     )

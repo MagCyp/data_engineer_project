@@ -11,7 +11,6 @@ from .subway import (
     get_subway_ridership_path,
 )
 from .weather import (
-    WEATHER_OBSERVATION_SCHEMA,
     WEATHER_OBSERVATIONS_FILENAME,
     WEATHER_PIPELINE_NAME,
     get_weather_observations_path,
@@ -23,7 +22,6 @@ __all__ = [
     "BIKE_PIPELINE_NAME",
     "SUBWAY_PIPELINE_NAME",
     "SUBWAY_RIDERSHIP_FILENAME",
-    "WEATHER_OBSERVATION_SCHEMA",
     "WEATHER_OBSERVATIONS_FILENAME",
     "WEATHER_PIPELINE_NAME",
     "get_bike_counts_path",

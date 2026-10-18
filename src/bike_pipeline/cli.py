@@ -2,7 +2,7 @@ import argparse
 from collections.abc import Sequence
 from pathlib import Path
 
-from helpers import parse_date
+from helpers import add_date_arguments
 from settings import load_config
 from storage import get_bike_raw_counters_path, get_bike_raw_counts_path
 
@@ -10,21 +10,6 @@ from .backfill import backfill_bike
 from .warehouse import load_bike_range
 
 COMMANDS = ("backfill", "warehouse", "pipeline")
-
-
-def _add_date_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
-        "--start-date",
-        type=parse_date,
-        required=True,
-        help="First date to process (YYYY-MM-DD)",
-    )
-    parser.add_argument(
-        "--end-date",
-        type=parse_date,
-        required=True,
-        help="Last date to process (YYYY-MM-DD)",
-    )
 
 
 def _add_source_arguments(parser: argparse.ArgumentParser) -> None:
@@ -55,7 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
             command,
             help=descriptions[command],
         )
-        _add_date_arguments(command_parser)
+        add_date_arguments(command_parser)
         if command in {"backfill", "pipeline"}:
             _add_source_arguments(command_parser)
 

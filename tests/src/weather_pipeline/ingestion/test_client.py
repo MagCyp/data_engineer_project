@@ -85,7 +85,7 @@ def test_get_weather_data_rejects_invalid_date_range(
 
     with pytest.raises(
         ValueError,
-        match="start_date must be before or equal to end_date",
+        match="start_date must be less than or equal to end_date",
     ):
         get_weather_data(
             city_params,

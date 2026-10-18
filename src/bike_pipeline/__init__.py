@@ -2,11 +2,10 @@ from .ingestion import (
     get_ranged_data,
     read_bike_counter_data,
     read_bike_data,
-    read_bike_source_file,
     scan_bike_counters_csv,
     scan_bike_csv,
 )
-from .load import SILVER_BIKE_SCHEMA, load_bike
+from .load import load_bike
 from .transformations import (
     transform_bronze_to_silver,
     transform_source_to_bronze,
@@ -45,12 +44,10 @@ __all__ = [
     "BIKE_SOURCE_TIMEZONE_MAP",
     "BikeObservation",
     "BikeSourceRecord",
-    "SILVER_BIKE_SCHEMA",
     "get_ranged_data",
     "load_bike",
     "read_bike_counter_data",
     "read_bike_data",
-    "read_bike_source_file",
     "scan_bike_csv",
     "scan_bike_counters_csv",
     "transform_bronze_to_silver",

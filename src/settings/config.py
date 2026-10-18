@@ -9,8 +9,10 @@ file_path = project_root / "config" / "project.yml"
 
 
 def load_config() -> dict[str, Any]:
-    with open(file_path, "r") as file:
-        config = yaml.safe_load(file)
+    with file_path.open(encoding="utf-8") as config_file:
+        config = yaml.safe_load(config_file)
+    if not isinstance(config, dict):
+        raise ValueError("Project configuration must be a mapping")
     return config
 
 
@@ -19,14 +21,7 @@ def get_api_config(
     api_name: str,
 ) -> Mapping[str, Any]:
     """Return configuration for a named external API."""
-    apis = config.get("apis")
-    if not isinstance(apis, Mapping) or api_name not in apis:
-        raise ValueError(f"API '{api_name}' is not configured")
-
-    api_config = apis[api_name]
-    if not isinstance(api_config, Mapping):
-        raise ValueError(f"API '{api_name}' configuration must be a mapping")
-    return api_config
+    return _get_named_config(config, section="apis", name=api_name, label="API")
 
 
 def get_pipeline_config(
@@ -34,16 +29,29 @@ def get_pipeline_config(
     pipeline_name: str,
 ) -> Mapping[str, Any]:
     """Return configuration for a named data pipeline."""
-    pipelines = config.get("pipelines")
-    if not isinstance(pipelines, Mapping) or pipeline_name not in pipelines:
-        raise ValueError(f"Pipeline '{pipeline_name}' is not configured")
+    return _get_named_config(
+        config,
+        section="pipelines",
+        name=pipeline_name,
+        label="Pipeline",
+    )
 
-    pipeline_config = pipelines[pipeline_name]
-    if not isinstance(pipeline_config, Mapping):
-        raise ValueError(
-            f"Pipeline '{pipeline_name}' configuration must be a mapping"
-        )
-    return pipeline_config
+
+def _get_named_config(
+    config: Mapping[str, Any],
+    *,
+    section: str,
+    name: str,
+    label: str,
+) -> Mapping[str, Any]:
+    configured_items = config.get(section)
+    if not isinstance(configured_items, Mapping) or name not in configured_items:
+        raise ValueError(f"{label} '{name}' is not configured")
+
+    item_config = configured_items[name]
+    if not isinstance(item_config, Mapping):
+        raise ValueError(f"{label} '{name}' configuration must be a mapping")
+    return item_config
 
 
 def get_storage_path(
@@ -60,7 +68,13 @@ def get_storage_path(
     if month is not None and not 1 <= month <= 12:
         raise ValueError("month must be between 1 and 12")
 
-    path_template = str(config["storage"][storage_key])
+    storage_config = config.get("storage")
+    if not isinstance(storage_config, Mapping) or storage_key not in storage_config:
+        raise ValueError(f"Storage path '{storage_key}' is not configured")
+
+    path_template = storage_config[storage_key]
+    if not isinstance(path_template, str) or not path_template.strip():
+        raise ValueError(f"Storage path '{storage_key}' must be a non-empty string")
     template_values: dict[str, str | int] = {
         "pipeline_name": pipeline_name,
     }

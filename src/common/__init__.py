@@ -1,3 +1,4 @@
+from .partitions import load_monthly_partitions
 from .validation import (
     Latitude,
     Longitude,
@@ -8,7 +9,12 @@ from .validation import (
     Percentage,
     PositiveInt,
     UTCDateTime,
+    finite_non_negative_numbers,
+    non_empty_strings,
     normalize_utc_datetime,
+    require_dataframe_schema,
+    require_unique_columns,
+    require_valid_rows,
 )
 
 __all__ = [
@@ -21,5 +27,11 @@ __all__ = [
     "Percentage",
     "PositiveInt",
     "UTCDateTime",
+    "finite_non_negative_numbers",
+    "load_monthly_partitions",
+    "non_empty_strings",
     "normalize_utc_datetime",
+    "require_dataframe_schema",
+    "require_unique_columns",
+    "require_valid_rows",
 ]

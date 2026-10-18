@@ -9,6 +9,7 @@ from mta_subway_pipeline.validation.models import (
     SUBWAY_SOURCE_SCHEMA,
     SubwaySourceRecord,
 )
+from storage.files import models_to_dataframe
 
 
 def transform_source_to_bronze(
@@ -18,12 +19,9 @@ def transform_source_to_bronze(
 ) -> pl.DataFrame:
     ingestion_time = datetime.now(UTC) if ingested_at is None else ingested_at
     ingestion_time = normalize_utc_datetime(ingestion_time)
-    rows = [record.model_dump(mode="python") for record in records]
-
-    source = (
-        pl.from_dicts(rows, schema=SUBWAY_SOURCE_SCHEMA, strict=True)
-        if rows
-        else pl.DataFrame(schema=SUBWAY_SOURCE_SCHEMA)
+    source = models_to_dataframe(
+        records,
+        schema=SUBWAY_SOURCE_SCHEMA,
     )
     return source.with_columns(
         pl.lit(ingestion_time)

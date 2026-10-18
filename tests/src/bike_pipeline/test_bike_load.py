@@ -6,8 +6,9 @@ import polars as pl
 import pytest
 from sqlalchemy import Engine
 
-import bike_pipeline.load as bike_load
-from bike_pipeline.load import SILVER_BIKE_SCHEMA, load_bike
+import storage.database.parquet_loader as parquet_loader
+from bike_pipeline.load import load_bike
+from bike_pipeline.validation import BIKE_SILVER_SCHEMA
 from storage.database.tables import bike_counts
 
 
@@ -25,7 +26,7 @@ def silver_bike_dataframe() -> pl.DataFrame:
             "status": [0],
             "ingested_at": [datetime(2026, 10, 15, 12, 0, tzinfo=UTC)],
         },
-        schema=SILVER_BIKE_SCHEMA,
+        schema=BIKE_SILVER_SCHEMA,
     )
 
 
@@ -39,8 +40,12 @@ def test_load_bike_validates_and_upserts_silver_parquet(
     engine = MagicMock(spec=Engine)
     connection = engine.begin.return_value.__enter__.return_value
     upsert_dataframe = MagicMock(return_value=1)
-    monkeypatch.setattr(bike_load, "get_engine", MagicMock(return_value=engine))
-    monkeypatch.setattr(bike_load, "upsert_dataframe", upsert_dataframe)
+    monkeypatch.setattr(
+        parquet_loader,
+        "get_engine",
+        MagicMock(return_value=engine),
+    )
+    monkeypatch.setattr(parquet_loader, "upsert_dataframe", upsert_dataframe)
 
     loaded_rows = load_bike(file_path)
 
@@ -62,7 +67,7 @@ def test_load_bike_does_not_open_database_for_invalid_schema(
     file_path = tmp_path / "bike_counts.parquet"
     silver_bike_dataframe().drop("timezone").write_parquet(file_path)
     get_engine = MagicMock()
-    monkeypatch.setattr(bike_load, "get_engine", get_engine)
+    monkeypatch.setattr(parquet_loader, "get_engine", get_engine)
 
     with pytest.raises(ValueError, match="does not match"):
         load_bike(file_path)
@@ -78,9 +83,13 @@ def test_load_bike_rolls_back_transaction_when_upsert_fails(
     silver_bike_dataframe().write_parquet(file_path)
     engine = MagicMock(spec=Engine)
     error = RuntimeError("database write failed")
-    monkeypatch.setattr(bike_load, "get_engine", MagicMock(return_value=engine))
     monkeypatch.setattr(
-        bike_load,
+        parquet_loader,
+        "get_engine",
+        MagicMock(return_value=engine),
+    )
+    monkeypatch.setattr(
+        parquet_loader,
         "upsert_dataframe",
         MagicMock(side_effect=error),
     )

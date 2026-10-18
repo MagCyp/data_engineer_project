@@ -12,6 +12,7 @@ from bike_pipeline.validation.models import (
     BIKE_SOURCE_DATETIME_FORMAT,
     BIKE_SOURCE_SCHEMA,
 )
+from helpers import validate_date_range
 
 
 def _validate_source_file(
@@ -81,19 +82,13 @@ def scan_bike_counters_csv(file_path: str | Path) -> pl.LazyFrame:
     )
 
 
-def read_bike_source_file(file_path: str | Path) -> pl.LazyFrame:
-    """Return a validated lazy scan of a raw bike CSV file."""
-    return scan_bike_csv(file_path)
-
-
 def get_ranged_data(
     lazy_frame: pl.LazyFrame,
     start_date: date,
     end_date: date,
 ) -> pl.LazyFrame:
     """Parse source timestamps and filter an inclusive calendar-date range."""
-    if start_date > end_date:
-        raise ValueError("start_date must be less than or equal to end_date")
+    validate_date_range(start_date, end_date)
 
     start_at = datetime.combine(start_date, time.min)
     end_at = datetime.combine(end_date, time.max)

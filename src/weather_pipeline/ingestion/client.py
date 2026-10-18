@@ -2,6 +2,7 @@ from datetime import date
 
 import httpx
 
+from helpers import validate_date_range
 from weather_pipeline.validation.models import (
     CityParams,
     HourlyWeatherResponse,
@@ -25,8 +26,7 @@ def get_weather_data(
     end_date: date,
 ) -> HourlyWeatherResponse:
     """Fetch and validate historical hourly weather data."""
-    if start_date > end_date:
-        raise ValueError("start_date must be before or equal to end_date")
+    validate_date_range(start_date, end_date)
 
     params: dict[str, float | str] = {
         "latitude": city_params.latitude,

@@ -1,15 +1,15 @@
 from datetime import UTC, datetime
 from pathlib import Path
 
-import polars as pl
-
 from storage.datasets.weather import (
-    WEATHER_OBSERVATION_SCHEMA,
     WEATHER_PIPELINE_NAME,
     get_weather_observations_path,
     weather_observations_to_dataframe,
 )
-from weather_pipeline.validation.models import WeatherObservation
+from weather_pipeline.validation.models import (
+    WEATHER_BRONZE_SCHEMA,
+    WeatherObservation,
+)
 
 
 def weather_observation(observed_at: datetime) -> WeatherObservation:
@@ -34,14 +34,14 @@ def test_weather_observations_to_dataframe() -> None:
     result = weather_observations_to_dataframe(observations)
 
     assert result.to_dicts() == [observations[0].model_dump()]
-    assert result.schema == pl.Schema(WEATHER_OBSERVATION_SCHEMA)
+    assert result.schema == WEATHER_BRONZE_SCHEMA
 
 
 def test_weather_observations_to_dataframe_keeps_schema_when_empty() -> None:
     result = weather_observations_to_dataframe([])
 
     assert result.is_empty()
-    assert result.schema == pl.Schema(WEATHER_OBSERVATION_SCHEMA)
+    assert result.schema == WEATHER_BRONZE_SCHEMA
 
 
 def test_get_weather_observations_path_uses_configured_storage(

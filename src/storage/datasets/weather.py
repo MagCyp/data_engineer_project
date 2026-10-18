@@ -6,21 +6,13 @@ import polars as pl
 
 from settings.config import get_storage_path
 from storage.files import models_to_dataframe
-from weather_pipeline.validation.models import WeatherObservation
+from weather_pipeline.validation.models import (
+    WEATHER_BRONZE_SCHEMA,
+    WeatherObservation,
+)
 
 WEATHER_OBSERVATIONS_FILENAME = "weather_observations.parquet"
 WEATHER_PIPELINE_NAME = "weather"
-WEATHER_OBSERVATION_SCHEMA = {
-    "location": pl.String,
-    "timezone": pl.String,
-    "time": pl.Datetime(time_unit="us", time_zone="UTC"),
-    "temperature_2m": pl.Float64,
-    "rain": pl.Float64,
-    "wind_speed_10m": pl.Float64,
-    "precipitation": pl.Float64,
-    "relative_humidity_2m": pl.Int64,
-    "ingested_at": pl.Datetime(time_unit="us", time_zone="UTC"),
-}
 
 
 def _location_partition_value(location: str) -> str:
@@ -67,5 +59,5 @@ def weather_observations_to_dataframe(
     """Convert weather observations into a Polars DataFrame."""
     return models_to_dataframe(
         observations,
-        schema=WEATHER_OBSERVATION_SCHEMA,
+        schema=WEATHER_BRONZE_SCHEMA,
     )

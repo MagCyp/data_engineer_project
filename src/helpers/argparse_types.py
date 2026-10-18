@@ -17,3 +17,19 @@ def parse_date(value: str) -> date:
         )
 
     return parsed_date
+
+
+def add_date_arguments(parser: argparse.ArgumentParser) -> None:
+    """Add the shared inclusive date-range options to a CLI parser."""
+    parser.add_argument(
+        "--start-date",
+        type=parse_date,
+        required=True,
+        help="First date to process (YYYY-MM-DD)",
+    )
+    parser.add_argument(
+        "--end-date",
+        type=parse_date,
+        required=True,
+        help="Last date to process (YYYY-MM-DD)",
+    )

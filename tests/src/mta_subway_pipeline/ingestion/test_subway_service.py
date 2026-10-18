@@ -27,19 +27,16 @@ def make_config() -> dict[str, object]:
                         "resource_id": "t69i-h2me",
                         "start_year": 2017,
                         "end_year": 2019,
-                        "incremental": False,
                     },
                     "hourly_ridership_2020_2024": {
                         "resource_id": "wujg-7c2s",
                         "start_year": 2020,
                         "end_year": 2024,
-                        "incremental": False,
                     },
                     "hourly_ridership_2025_present": {
                         "resource_id": "5wq4-mkjj",
                         "start_year": 2025,
                         "end_year": None,
-                        "incremental": True,
                     },
                 },
             }

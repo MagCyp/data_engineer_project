@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from helpers import validate_date_range
 from mta_subway_pipeline.ingestion.client import (
     SOCRATA_DEFAULT_MAX_RETRIES,
     SOCRATA_DEFAULT_RETRY_BASE_DELAY_SECONDS,
@@ -18,22 +19,12 @@ from mta_subway_pipeline.validation.models import (
 from settings import get_api_config, get_pipeline_config
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class SubwayDatasetSlice:
     name: str
     resource_id: str
     start_date: date
     end_date: date
-    incremental: bool
-
-
-@dataclass(frozen=True)
-class _SubwayDataset:
-    name: str
-    resource_id: str
-    start_date: date
-    end_date: date
-    incremental: bool
 
 
 def _current_date() -> date:
@@ -74,12 +65,12 @@ def _year(
 
 def _configured_datasets(
     pipeline_config: Mapping[str, Any],
-) -> list[_SubwayDataset]:
+) -> list[SubwayDatasetSlice]:
     configured = pipeline_config.get("datasets")
     if not isinstance(configured, Mapping) or not configured:
         raise ValueError("Subway datasets must be a non-empty mapping")
 
-    datasets: list[_SubwayDataset] = []
+    datasets: list[SubwayDatasetSlice] = []
     for dataset_name, raw_config in configured.items():
         name = str(dataset_name)
         if not isinstance(raw_config, Mapping):
@@ -111,21 +102,14 @@ def _configured_datasets(
                 f"Subway dataset '{name}' end_year must not precede start_year"
             )
 
-        incremental = raw_config.get("incremental", False)
-        if not isinstance(incremental, bool):
-            raise ValueError(
-                f"Subway dataset '{name}' field 'incremental' must be a boolean"
-            )
-
         datasets.append(
-            _SubwayDataset(
+            SubwayDatasetSlice(
                 name=name,
                 resource_id=resource_id.strip(),
                 start_date=date(start_year, 1, 1),
                 end_date=(
                     date.max if end_year is None else date(end_year, 12, 31)
                 ),
-                incremental=incremental,
             )
         )
 
@@ -146,8 +130,7 @@ def _dataset_slices(
     start_date: date,
     end_date: date,
 ) -> list[SubwayDatasetSlice]:
-    if start_date > end_date:
-        raise ValueError("start_date must be before or equal to end_date")
+    validate_date_range(start_date, end_date)
 
     cursor = start_date
     slices: list[SubwayDatasetSlice] = []
@@ -176,7 +159,6 @@ def _dataset_slices(
                 resource_id=dataset.resource_id,
                 start_date=slice_start,
                 end_date=slice_end,
-                incremental=dataset.incremental,
             )
         )
         if slice_end == end_date:

@@ -4,6 +4,8 @@ from typing import Any
 
 from settings.config import get_pipeline_config, get_storage_path
 
+from .partitioned import get_partition_file_path
+
 BIKE_COUNTS_FILENAME = "bike_counts.parquet"
 BIKE_PIPELINE_NAME = "bike"
 
@@ -59,13 +61,11 @@ def get_bike_counts_path(
     storage_key: str = "bronze_path",
 ) -> Path:
     """Return the configured year/month bike-count partition path."""
-    return (
-        get_storage_path(
-            config,
-            storage_key=storage_key,
-            pipeline_name=BIKE_PIPELINE_NAME,
-            year=year,
-            month=month,
-        )
-        / BIKE_COUNTS_FILENAME
+    return get_partition_file_path(
+        config,
+        pipeline_name=BIKE_PIPELINE_NAME,
+        filename=BIKE_COUNTS_FILENAME,
+        year=year,
+        month=month,
+        storage_key=storage_key,
     )

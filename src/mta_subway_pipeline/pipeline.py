@@ -2,6 +2,7 @@ from collections.abc import Mapping
 from datetime import date, datetime
 from typing import Any
 
+from helpers import validate_month_range
 from storage import get_subway_ridership_path, save_as_parquet
 
 from .ingestion import SOCRATA_MAX_PAGE_SIZE, iter_subway_records
@@ -22,10 +23,7 @@ def process_subway_month(
     ingested_at: datetime | None = None,
 ) -> None:
     """Download, transform, validate, and persist one subway month."""
-    if start_date > end_date:
-        raise ValueError("start_date must be less than or equal to end_date")
-    if (start_date.year, start_date.month) != (end_date.year, end_date.month):
-        raise ValueError("start_date and end_date must belong to the same month")
+    validate_month_range(start_date, end_date)
 
     records = iter_subway_records(
         config,

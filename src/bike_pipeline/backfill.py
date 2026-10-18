@@ -3,7 +3,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
-from helpers import iter_month_ranges
+from helpers import iter_month_ranges, validate_date_range
 
 from .ingestion import read_bike_counter_data, read_bike_data
 from .pipeline import process_bike_month
@@ -18,8 +18,7 @@ def backfill_bike(
     end_date: date,
 ) -> None:
     """Read the source once and write all requested monthly partitions."""
-    if start_date > end_date:
-        raise ValueError("start_date must be less than or equal to end_date")
+    validate_date_range(start_date, end_date)
 
     source_data = read_bike_data(
         counts_file_path,

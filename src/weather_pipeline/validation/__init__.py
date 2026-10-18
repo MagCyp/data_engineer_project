@@ -1,5 +1,7 @@
 from .bronze import validate_bronze_weather
 from .models import (
+    WEATHER_BRONZE_SCHEMA,
+    WEATHER_SILVER_SCHEMA,
     CityParams,
     HourlyWeather,
     HourlyWeatherResponse,
@@ -14,6 +16,8 @@ __all__ = [
     "HourlyWeather",
     "HourlyWeatherResponse",
     "HourlyWeatherUnits",
+    "WEATHER_BRONZE_SCHEMA",
+    "WEATHER_SILVER_SCHEMA",
     "WeatherObservation",
     "WeatherResponse",
     "validate_bronze_weather",

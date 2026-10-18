@@ -6,8 +6,9 @@ import polars as pl
 import pytest
 from sqlalchemy import Engine
 
-import mta_subway_pipeline.load as subway_load
-from mta_subway_pipeline.load import SILVER_SUBWAY_SCHEMA, load_subway
+import storage.database.parquet_loader as parquet_loader
+from mta_subway_pipeline.load import load_subway
+from mta_subway_pipeline.validation import SUBWAY_SILVER_SCHEMA
 from storage.database.tables import subway_ridership
 
 
@@ -31,7 +32,7 @@ def silver_subway_dataframe() -> pl.DataFrame:
             "longitude": [-73.96892],
             "ingested_at": [datetime(2026, 10, 18, 12, tzinfo=UTC)],
         },
-        schema=SILVER_SUBWAY_SCHEMA,
+        schema=SUBWAY_SILVER_SCHEMA,
     )
 
 
@@ -46,11 +47,11 @@ def test_load_subway_validates_and_upserts_silver_parquet(
     connection = engine.begin.return_value.__enter__.return_value
     upsert_dataframe = MagicMock(return_value=1)
     monkeypatch.setattr(
-        subway_load,
+        parquet_loader,
         "get_engine",
         MagicMock(return_value=engine),
     )
-    monkeypatch.setattr(subway_load, "upsert_dataframe", upsert_dataframe)
+    monkeypatch.setattr(parquet_loader, "upsert_dataframe", upsert_dataframe)
 
     loaded_rows = load_subway(file_path)
 

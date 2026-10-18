@@ -66,9 +66,11 @@ def test_get_subway_data_requests_and_validates_all_pages(
         url: str,
         *,
         params: dict[str, str | int],
+        headers: dict[str, str] | None,
         timeout: int,
     ) -> httpx.Response:
         assert url == "https://data.ny.gov/resource/5wq4-mkjj.json"
+        assert headers is None
         assert timeout == 60
         captured_params.append(params)
         return make_response(200, json=pages.pop(0))
@@ -101,7 +103,7 @@ def test_get_subway_data_rejects_invalid_date_range(
 
     with pytest.raises(
         ValueError,
-        match="start_date must be before or equal to end_date",
+        match="start_date must be less than or equal to end_date",
     ):
         get_subway_data(
             resource_id="5wq4-mkjj",

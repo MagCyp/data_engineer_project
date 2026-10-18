@@ -52,10 +52,6 @@ def test_config():
         dataset["resource_id"]
         for dataset in subway["datasets"].values()
     } == {"t69i-h2me", "wujg-7c2s", "5wq4-mkjj"}
-    assert subway["datasets"]["hourly_ridership_2025_present"][
-        "incremental"
-    ] is True
-
     bike = config["pipelines"]["bike"]
     assert bike["raw_files"] == {
         "counts": "bicycle_counts.csv",

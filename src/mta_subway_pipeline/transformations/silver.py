@@ -6,17 +6,10 @@ from mta_subway_pipeline.validation.models import (
     SUBWAY_GRAIN_COLUMNS,
     SUBWAY_LOCAL_TIMEZONE,
     SUBWAY_SILVER_SCHEMA,
+    SUBWAY_STRING_COLUMNS,
 )
 
 SILVER_COLUMNS = SUBWAY_SILVER_SCHEMA.names()
-STRING_COLUMNS = (
-    "transit_mode",
-    "station_complex_id",
-    "station_complex",
-    "borough",
-    "payment_method",
-    "fare_class_category",
-)
 
 
 def transform_bronze_to_silver(dataframe: pl.DataFrame) -> pl.DataFrame:
@@ -38,7 +31,7 @@ def transform_bronze_to_silver(dataframe: pl.DataFrame) -> pl.DataFrame:
         .dt.convert_time_zone("UTC")
         .alias("observed_at_utc"),
         pl.lit(SUBWAY_LOCAL_TIMEZONE).alias("timezone"),
-        *(pl.col(column).str.strip_chars() for column in STRING_COLUMNS),
+        *(pl.col(column).str.strip_chars() for column in SUBWAY_STRING_COLUMNS),
         pl.col("ridership"),
         pl.col("transfers"),
         pl.col("latitude"),

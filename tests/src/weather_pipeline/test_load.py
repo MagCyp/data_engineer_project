@@ -6,9 +6,10 @@ import polars as pl
 import pytest
 from sqlalchemy import Engine
 
-import weather_pipeline.load as weather_load
+import storage.database.parquet_loader as parquet_loader
 from storage.database.tables import weather_observations
-from weather_pipeline.load import SILVER_WEATHER_SCHEMA, load_weather
+from weather_pipeline.load import load_weather
+from weather_pipeline.validation import WEATHER_SILVER_SCHEMA
 
 
 def silver_weather_dataframe() -> pl.DataFrame:
@@ -24,7 +25,7 @@ def silver_weather_dataframe() -> pl.DataFrame:
             "wind_speed_kmh": [8.1],
             "ingested_at": [datetime(2026, 10, 12, tzinfo=UTC)],
         },
-        schema=SILVER_WEATHER_SCHEMA,
+        schema=WEATHER_SILVER_SCHEMA,
     )
 
 
@@ -38,8 +39,12 @@ def test_load_weather_validates_and_upserts_silver_parquet(
     engine = MagicMock(spec=Engine)
     connection = engine.begin.return_value.__enter__.return_value
     upsert_dataframe = MagicMock(return_value=1)
-    monkeypatch.setattr(weather_load, "get_engine", MagicMock(return_value=engine))
-    monkeypatch.setattr(weather_load, "upsert_dataframe", upsert_dataframe)
+    monkeypatch.setattr(
+        parquet_loader,
+        "get_engine",
+        MagicMock(return_value=engine),
+    )
+    monkeypatch.setattr(parquet_loader, "upsert_dataframe", upsert_dataframe)
 
     loaded_rows = load_weather(file_path)
 
@@ -61,7 +66,7 @@ def test_load_weather_does_not_open_database_for_invalid_schema(
     file_path = tmp_path / "weather_observations.parquet"
     silver_weather_dataframe().drop("rain_mm").write_parquet(file_path)
     get_engine = MagicMock()
-    monkeypatch.setattr(weather_load, "get_engine", get_engine)
+    monkeypatch.setattr(parquet_loader, "get_engine", get_engine)
 
     with pytest.raises(ValueError, match="does not match"):
         load_weather(file_path)
@@ -77,9 +82,13 @@ def test_load_weather_rolls_back_transaction_when_upsert_fails(
     silver_weather_dataframe().write_parquet(file_path)
     engine = MagicMock(spec=Engine)
     error = RuntimeError("database write failed")
-    monkeypatch.setattr(weather_load, "get_engine", MagicMock(return_value=engine))
     monkeypatch.setattr(
-        weather_load,
+        parquet_loader,
+        "get_engine",
+        MagicMock(return_value=engine),
+    )
+    monkeypatch.setattr(
+        parquet_loader,
         "upsert_dataframe",
         MagicMock(side_effect=error),
     )

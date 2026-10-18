@@ -1,16 +1,8 @@
 import polars as pl
 
-SILVER_COLUMNS = [
-    "location",
-    "timezone",
-    "observed_at_utc",
-    "temperature_c",
-    "relative_humidity_pct",
-    "precipitation_mm",
-    "rain_mm",
-    "wind_speed_kmh",
-    "ingested_at",
-]
+from weather_pipeline.validation.models import WEATHER_SILVER_SCHEMA
+
+SILVER_COLUMNS = WEATHER_SILVER_SCHEMA.names()
 
 
 def transform_bronze_to_silver(dataframe: pl.DataFrame) -> pl.DataFrame:

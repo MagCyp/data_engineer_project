@@ -3,12 +3,14 @@ from .ingestion import (
     get_location_by_name,
     get_weather_data,
 )
-from .load import SILVER_WEATHER_SCHEMA, load_weather
+from .load import load_weather
 from .transformations import (
     transform_bronze_to_silver,
     transform_response_to_bronze,
 )
 from .validation import (
+    WEATHER_BRONZE_SCHEMA,
+    WEATHER_SILVER_SCHEMA,
     CityParams,
     HourlyWeather,
     HourlyWeatherResponse,
@@ -24,7 +26,8 @@ __all__ = [
     "HourlyWeather",
     "HourlyWeatherResponse",
     "HourlyWeatherUnits",
-    "SILVER_WEATHER_SCHEMA",
+    "WEATHER_BRONZE_SCHEMA",
+    "WEATHER_SILVER_SCHEMA",
     "WeatherObservation",
     "WeatherResponse",
     "fetch_weather_for_location",

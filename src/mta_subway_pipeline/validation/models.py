@@ -68,6 +68,14 @@ SUBWAY_GRAIN_COLUMNS = (
     "payment_method",
     "fare_class_category",
 )
+SUBWAY_STRING_COLUMNS = (
+    "transit_mode",
+    "station_complex_id",
+    "station_complex",
+    "borough",
+    "payment_method",
+    "fare_class_category",
+)
 
 
 class SocrataPoint(BaseModel):

@@ -7,7 +7,7 @@ from .ingestion import (
     iter_subway_data,
     iter_subway_records,
 )
-from .load import SILVER_SUBWAY_SCHEMA, load_subway
+from .load import load_subway
 from .transformations import (
     transform_bronze_to_silver,
     transform_source_to_bronze,
@@ -28,7 +28,6 @@ from .validation import (
 )
 
 __all__ = [
-    "SILVER_SUBWAY_SCHEMA",
     "SOCRATA_MAX_PAGE_SIZE",
     "SUBWAY_AMBIGUOUS_TIME_POLICY",
     "SUBWAY_BRONZE_SCHEMA",

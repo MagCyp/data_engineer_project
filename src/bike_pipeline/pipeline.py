@@ -4,6 +4,7 @@ from typing import Any
 
 import polars as pl
 
+from helpers import validate_month_range
 from storage import get_bike_counts_path, save_as_parquet
 
 from .transformations import (
@@ -23,10 +24,7 @@ def process_bike_month(
     ingested_at: datetime | None = None,
 ) -> None:
     """Transform and persist one monthly partition from loaded source data."""
-    if start_date > end_date:
-        raise ValueError("start_date must be less than or equal to end_date")
-    if (start_date.year, start_date.month) != (end_date.year, end_date.month):
-        raise ValueError("start_date and end_date must belong to the same month")
+    validate_month_range(start_date, end_date)
 
     start_at = datetime.combine(start_date, time.min)
     end_at = datetime.combine(end_date, time.max)

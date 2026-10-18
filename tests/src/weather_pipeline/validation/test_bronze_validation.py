@@ -70,7 +70,7 @@ def test_validate_bronze_weather_rejects_invalid_rows(
 def test_validate_bronze_weather_rejects_missing_columns() -> None:
     dataframe = pl.DataFrame([bronze_row()]).drop("rain")
 
-    with pytest.raises(ValueError, match="Missing bronze columns: rain"):
+    with pytest.raises(ValueError, match="Missing Bronze weather columns: rain"):
         validate_bronze_weather(dataframe)
 
 
@@ -81,6 +81,6 @@ def test_validate_bronze_weather_rejects_naive_observation_time() -> None:
 
     with pytest.raises(
         ValueError,
-        match="Bronze column 'time' must use UTC timezone",
+        match="Bronze weather column 'time' must use",
     ):
         validate_bronze_weather(dataframe)
