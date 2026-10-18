@@ -1,0 +1,131 @@
+version: 2
+
+models:
+  - name: stg_mobility__weather_observations
+    description: >-
+      Hourly weather observations exposed from the landing layer without
+      changing their granularity.
+    columns:
+      - name: location
+        description: Name of the observed location.
+        data_tests:
+          - not_null
+
+      - name: timezone
+        description: Timezone supplied by the weather source.
+
+      - name: observed_at_utc
+        description: Observation timestamp normalized to UTC.
+        data_tests:
+          - not_null
+
+      - name: temperature_c
+        description: Air temperature in degrees Celsius.
+
+      - name: relative_humidity_pct
+        description: Relative humidity percentage from 0 to 100.
+
+      - name: precipitation_mm
+        description: Total precipitation in millimetres.
+
+      - name: rain_mm
+        description: Rainfall in millimetres.
+
+      - name: wind_speed_kmh
+        description: Wind speed in kilometres per hour.
+
+      - name: ingested_at
+        description: UTC timestamp when the Python pipeline ingested the row.
+
+  - name: stg_mobility__bike_counts
+    description: >-
+      Fifteen-minute bicycle counts exposed from the landing layer without
+      changing their granularity.
+    columns:
+      - name: record_id
+        description: Unique source record identifier and model grain.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: counter_id
+        description: Identifier of the bicycle counter.
+        data_tests:
+          - not_null
+
+      - name: timezone
+        description: IANA timezone used for the observation.
+
+      - name: observed_at_local
+        description: Local observation timestamp without a timezone offset.
+
+      - name: observed_at_utc
+        description: Observation timestamp normalized to UTC.
+        data_tests:
+          - not_null
+
+      - name: bike_count
+        description: Number of bicycles recorded during the interval.
+
+      - name: status
+        description: Status code supplied by the counter source.
+
+      - name: ingested_at
+        description: UTC timestamp when the Python pipeline ingested the row.
+
+  - name: stg_mobility__subway_ridership
+    description: >-
+      Hourly subway ridership exposed from the landing layer without changing
+      its station and fare-category granularity.
+    columns:
+      - name: observed_at_local
+        description: New York local observation timestamp.
+
+      - name: observed_at_utc
+        description: Observation timestamp normalized to UTC.
+        data_tests:
+          - not_null
+
+      - name: timezone
+        description: IANA timezone used for the observation.
+
+      - name: transit_mode
+        description: Transit mode reported by the source.
+        data_tests:
+          - not_null
+
+      - name: station_complex_id
+        description: MTA station-complex identifier.
+        data_tests:
+          - not_null
+
+      - name: station_complex
+        description: Human-readable station-complex name.
+
+      - name: borough
+        description: New York City borough containing the station.
+
+      - name: payment_method
+        description: Payment method used by riders.
+        data_tests:
+          - not_null
+
+      - name: fare_class_category
+        description: Fare category reported by the MTA source.
+        data_tests:
+          - not_null
+
+      - name: ridership
+        description: Estimated number of riders.
+
+      - name: transfers
+        description: Estimated number of transfers included in ridership.
+
+      - name: latitude
+        description: Station latitude.
+
+      - name: longitude
+        description: Station longitude.
+
+      - name: ingested_at
+        description: UTC timestamp when the Python pipeline ingested the row.
