@@ -1,0 +1,148 @@
+version: 2
+
+models:
+  - name: bike_weather_daily
+    description: >-
+      Daily bicycle activity and New York weather at one counter and local
+      calendar date. Partial-hour counts are retained and flagged by coverage.
+    columns:
+      - name: date_day
+        description: New York local calendar date.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
+
+      - name: counter_id
+        description: Bicycle counter identifier.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_bicycle_counter')
+                field: counter_id
+
+      - name: bike_count
+        description: Sum of included bicycle counts for the local day.
+        data_tests:
+          - not_null
+
+      - name: valid_hours
+        description: Number of hours with complete valid 15-minute coverage.
+
+      - name: is_complete_day
+        description: >-
+          True when valid_hours equals the 23, 24, or 25 hours in the New York
+          local day.
+        data_tests:
+          - not_null
+
+      - name: avg_temperature_c
+        description: Average hourly temperature for New York during the day.
+
+      - name: total_precipitation_mm
+        description: Total hourly precipitation for New York during the day.
+
+      - name: avg_wind_speed_kmh
+        description: Average hourly wind speed for New York during the day.
+
+      - name: is_rainy_day
+        description: True when total hourly rain is greater than zero.
+
+  - name: subway_weather_daily
+    description: >-
+      Daily subway ridership and New York weather at one station complex and
+      local calendar date.
+    columns:
+      - name: date_day
+        description: New York local calendar date.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
+
+      - name: station_complex_id
+        description: MTA station-complex identifier.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_subway_station')
+                field: station_complex_id
+
+      - name: borough
+        description: Borough from the subway station dimension.
+
+      - name: total_ridership
+        description: Daily ridership; transfers are already included.
+        data_tests:
+          - not_null
+
+      - name: total_transfers
+        description: Daily transfers, not additive to total_ridership.
+        data_tests:
+          - not_null
+
+      - name: observed_hours
+        description: Number of distinct UTC hours represented during the day.
+
+      - name: avg_temperature_c
+        description: Average hourly temperature for New York during the day.
+
+      - name: total_precipitation_mm
+        description: Total hourly precipitation for New York during the day.
+
+      - name: is_rainy_day
+        description: True when total hourly rain is greater than zero.
+
+  - name: mobility_weather_daily
+    description: >-
+      New York daily weather with observed bike and subway activity. Activity
+      indexes are ratios to the average observed day in the available period.
+    columns:
+      - name: date_day
+        description: New York local calendar date and model grain.
+        data_tests:
+          - not_null
+          - unique
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
+
+      - name: avg_temperature_c
+        description: Average hourly temperature for New York during the day.
+
+      - name: total_precipitation_mm
+        description: Total hourly precipitation for New York during the day.
+
+      - name: is_rainy_day
+        description: True when total hourly rain is greater than zero.
+
+      - name: bike_observed_count
+        description: >-
+          Sum across all reporting counter IDs; this is not a citywide traffic
+          estimate because physical locations may overlap.
+
+      - name: bike_reporting_sensors
+        description: Number of distinct counter IDs with data for the day.
+        data_tests:
+          - not_null
+
+      - name: subway_total_ridership
+        description: Total observed ridership across reporting stations.
+
+      - name: subway_reporting_stations
+        description: Number of distinct station complexes with data for the day.
+        data_tests:
+          - not_null
+
+      - name: bike_activity_index
+        description: Bike observed count divided by its period average.
+
+      - name: subway_activity_index
+        description: Subway ridership divided by its period average.
