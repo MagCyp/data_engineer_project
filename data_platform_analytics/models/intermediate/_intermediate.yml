@@ -36,7 +36,21 @@ models:
           - not_null
 
       - name: source_record_count
-        description: Number of source intervals included in the hourly row.
+        description: Number of all source intervals received for the hour.
+        data_tests:
+          - not_null
+
+      - name: valid_source_record_count
+        description: >-
+          Number of source intervals whose status is raw, modified, validated,
+          or certified and whose count is included in bike_count.
+        data_tests:
+          - not_null
+
+      - name: problem_source_record_count
+        description: >-
+          Number of excluded or deleted source intervals whose count is not
+          included in bike_count.
         data_tests:
           - not_null
 
