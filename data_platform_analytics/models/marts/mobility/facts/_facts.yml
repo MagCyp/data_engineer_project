@@ -1,0 +1,134 @@
+version: 2
+
+models:
+  - name: fct_weather_hourly
+    description: One weather observation per location and UTC hour.
+    columns:
+      - name: location
+        description: Weather observation location.
+        data_tests:
+          - not_null
+
+      - name: observed_at_utc
+        description: UTC observation hour.
+        data_tests:
+          - not_null
+
+      - name: date_day
+        description: New York local date containing the UTC hour.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
+
+  - name: fct_bicycle_counts_hourly
+    description: >-
+      One bicycle counter per UTC hour, with explicit coverage and source
+      status quality indicators.
+    columns:
+      - name: counter_id
+        description: Bicycle counter identifier.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_bicycle_counter')
+                field: counter_id
+
+      - name: observed_at_utc
+        description: UTC observation hour.
+        data_tests:
+          - not_null
+
+      - name: date_day
+        description: New York local date containing the UTC hour.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
+
+      - name: bike_count
+        description: Sum of counts with an included source status.
+        data_tests:
+          - not_null
+
+      - name: source_record_count
+        description: Number of all source intervals received for the hour.
+
+      - name: valid_source_record_count
+        description: Number of intervals included in bike_count.
+
+      - name: problem_source_record_count
+        description: Number of excluded or deleted source intervals.
+
+      - name: expected_record_count
+        description: Expected number of 15-minute records in a UTC hour.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [4]
+                quote: false
+
+      - name: is_complete_hour
+        description: >-
+          True when all four expected records are valid and none is excluded
+          or deleted.
+        data_tests:
+          - not_null
+
+      - name: latest_ingested_at
+        description: Latest source ingestion timestamp within the hour.
+
+  - name: fct_subway_ridership_hourly
+    description: One station complex, transit mode, and UTC hour.
+    columns:
+      - name: station_complex_id
+        description: MTA station-complex identifier.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_subway_station')
+                field: station_complex_id
+
+      - name: transit_mode
+        description: Transit mode reported by the source.
+        data_tests:
+          - not_null
+
+      - name: observed_at_utc
+        description: UTC observation hour.
+        data_tests:
+          - not_null
+
+      - name: date_day
+        description: New York local date containing the UTC hour.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
+
+      - name: ridership
+        description: Total ridership across payment and fare categories.
+        data_tests:
+          - not_null
+
+      - name: transfers
+        description: Transfers already included within ridership.
+        data_tests:
+          - not_null
+
+      - name: payment_method_count
+        description: Number of represented payment methods.
+
+      - name: fare_class_category_count
+        description: Number of represented fare categories.
+
+      - name: source_record_count
+        description: Number of source rows aggregated into the fact row.
