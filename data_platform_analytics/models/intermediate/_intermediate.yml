@@ -48,20 +48,11 @@ models:
   - name: int_subway_ridership_hourly
     description: >-
       Subway ridership aggregated across fare and payment categories to one
-      row per station complex, transit mode, and UTC hour.
+      row per station complex, transit mode, and UTC hour. Descriptive station
+      attributes are intentionally excluded from this fact-like model.
     columns:
-      - name: observed_at_local
-        description: Beginning of the observation hour in local wall-clock time.
-        data_tests:
-          - not_null
-
-      - name: observed_at_utc
-        description: Beginning of the observation hour in UTC.
-        data_tests:
-          - not_null
-
-      - name: timezone
-        description: IANA timezone used for the local observation timestamp.
+      - name: station_complex_id
+        description: MTA station-complex identifier.
         data_tests:
           - not_null
 
@@ -70,22 +61,10 @@ models:
         data_tests:
           - not_null
 
-      - name: station_complex_id
-        description: MTA station-complex identifier.
+      - name: observed_at_utc
+        description: Beginning of the observation hour in UTC.
         data_tests:
           - not_null
-
-      - name: station_complex
-        description: Human-readable station-complex name.
-
-      - name: borough
-        description: New York City borough containing the station complex.
-
-      - name: latitude
-        description: Station latitude.
-
-      - name: longitude
-        description: Station longitude.
 
       - name: ridership
         description: Total ridership across fare and payment categories.

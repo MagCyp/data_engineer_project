@@ -1,33 +1,21 @@
 with source as (
     select
-        observed_at_local,
         observed_at_utc,
-        timezone,
         transit_mode,
         station_complex_id,
-        station_complex,
-        borough,
         payment_method,
         fare_class_category,
         ridership,
         transfers,
-        latitude,
-        longitude,
         ingested_at
     from {{ ref('stg_mobility__subway_ridership') }}
 ),
 
 hourly as (
     select
-        observed_at_local,
-        observed_at_utc,
-        timezone,
-        transit_mode,
         station_complex_id,
-        station_complex,
-        borough,
-        latitude,
-        longitude,
+        transit_mode,
+        observed_at_utc,
         sum(ridership) as ridership,
         sum(transfers) as transfers,
         count(distinct payment_method) as payment_method_count,
@@ -36,28 +24,16 @@ hourly as (
         max(ingested_at) as latest_ingested_at
     from source
     group by
-        observed_at_local,
-        observed_at_utc,
-        timezone,
-        transit_mode,
         station_complex_id,
-        station_complex,
-        borough,
-        latitude,
-        longitude
+        transit_mode,
+        observed_at_utc
 ),
 
 final as (
     select
-        observed_at_local,
-        observed_at_utc,
-        timezone,
-        transit_mode,
         station_complex_id,
-        station_complex,
-        borough,
-        latitude,
-        longitude,
+        transit_mode,
+        observed_at_utc,
         ridership,
         transfers,
         payment_method_count,
@@ -68,15 +44,9 @@ final as (
 )
 
 select
-    observed_at_local,
-    observed_at_utc,
-    timezone,
-    transit_mode,
     station_complex_id,
-    station_complex,
-    borough,
-    latitude,
-    longitude,
+    transit_mode,
+    observed_at_utc,
     ridership,
     transfers,
     payment_method_count,
