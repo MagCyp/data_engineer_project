@@ -1,0 +1,102 @@
+version: 2
+
+models:
+  - name: dim_date
+    description: One row per New York local calendar date covered by the data.
+    columns:
+      - name: date_day
+        description: New York local calendar date and dimension grain.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: year
+        description: Calendar year.
+
+      - name: quarter
+        description: Calendar quarter from 1 to 4.
+
+      - name: month
+        description: Calendar month from 1 to 12.
+
+      - name: month_name
+        description: English calendar month name.
+
+      - name: day_of_month
+        description: Day number within the month.
+
+      - name: day_of_week
+        description: ISO weekday number where Monday is 1 and Sunday is 7.
+
+      - name: is_weekend
+        description: True for Saturday and Sunday.
+
+      - name: season
+        description: Meteorological season in the Northern Hemisphere.
+
+      - name: expected_hour_count
+        description: Number of UTC hours in the New York local day (23, 24, or 25).
+
+  - name: dim_bicycle_counter
+    description: One row per bicycle counter from the source metadata seed.
+    columns:
+      - name: counter_id
+        description: Bicycle counter identifier and dimension grain.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: counter_name
+        description: Human-readable counter name.
+
+      - name: domain_name
+        description: Domain name supplied by the source.
+
+      - name: latitude
+        description: Counter latitude in decimal degrees.
+
+      - name: longitude
+        description: Counter longitude in decimal degrees.
+
+      - name: recording_interval_minutes
+        description: Recording interval declared by the counter metadata.
+
+      - name: source_timezone
+        description: Original timezone label supplied by the source.
+
+      - name: direction_detection_code
+        description: Source code describing whether direction is distinguished.
+
+      - name: counter_serial_number
+        description: Serial number of the linked physical counter, when available.
+
+  - name: dim_subway_station
+    description: >-
+      One row per subway station complex. Distinct attributes are retained so
+      the unique test fails instead of silently choosing conflicting values.
+    columns:
+      - name: station_complex_id
+        description: MTA station-complex identifier and dimension grain.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: station_complex_name
+        description: Human-readable station-complex name.
+        data_tests:
+          - not_null
+
+      - name: borough
+        description: New York City borough containing the station complex.
+        data_tests:
+          - not_null
+
+      - name: latitude
+        description: Station latitude.
+        data_tests:
+          - not_null
+
+      - name: longitude
+        description: Station longitude.
+        data_tests:
+          - not_null
