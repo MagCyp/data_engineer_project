@@ -75,6 +75,23 @@ def test_process_weather_month_writes_bronze_and_silver_parquet(
     assert "temperature_c" in silver.columns
     assert "time" not in silver.columns
 
+    updated_response = response.model_copy(deep=True)
+    updated_response.hourly.temperature_2m[0] = 25.0
+    fetch_weather.return_value = updated_response
+
+    pipeline.process_weather_month(
+        config,
+        "New York",
+        start_date,
+        end_date,
+    )
+
+    rerun_silver = pl.read_parquet(
+        tmp_path / "silver_path" / "New York" / "2026-10.parquet"
+    ).sort("observed_at_utc")
+    assert rerun_silver.height == 2
+    assert rerun_silver["temperature_c"].to_list() == [25.0, 19.7]
+
 
 def test_process_weather_month_rejects_dates_from_different_months() -> None:
     with pytest.raises(

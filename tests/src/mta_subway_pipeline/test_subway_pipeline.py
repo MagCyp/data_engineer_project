@@ -91,6 +91,32 @@ def test_process_subway_month_writes_bronze_and_silver(
         tzinfo=UTC,
     )
 
+    updated_record = record.model_copy(update={"ridership": 500.0})
+    monkeypatch.setattr(
+        pipeline,
+        "iter_subway_records",
+        lambda *args, **kwargs: iter([updated_record]),
+    )
+    pipeline.process_subway_month(
+        config,
+        date(2025, 1, 15),
+        date(2025, 1, 15),
+        page_size=100,
+        app_token="token",
+        ingested_at=datetime(2026, 10, 19, 12, tzinfo=UTC),
+    )
+
+    rerun_silver = pl.read_parquet(
+        tmp_path
+        / "silver"
+        / "mta_subway"
+        / "year=2025"
+        / "month=01"
+        / "subway_ridership.parquet"
+    )
+    assert rerun_silver.height == 1
+    assert rerun_silver.item(0, "ridership") == 500.0
+
 
 def test_process_subway_month_rejects_multiple_months() -> None:
     with pytest.raises(ValueError, match="same month"):

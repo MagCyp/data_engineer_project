@@ -13,7 +13,7 @@ from .datasets import (
     get_weather_observations_path,
     weather_observations_to_dataframe,
 )
-from .files import models_to_dataframe, save_as_parquet
+from .files import merge_and_save_parquet, models_to_dataframe, save_as_parquet
 
 __all__ = [
     "BIKE_COUNTS_FILENAME",
@@ -31,6 +31,7 @@ __all__ = [
     "get_subway_ridership_path",
     "get_weather_observations_path",
     "metadata",
+    "merge_and_save_parquet",
     "models_to_dataframe",
     "save_as_parquet",
     "weather_observations_to_dataframe",

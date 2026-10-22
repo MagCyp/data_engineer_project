@@ -5,7 +5,7 @@ from typing import Any
 import polars as pl
 
 from helpers import validate_month_range
-from storage import get_bike_counts_path, save_as_parquet
+from storage import get_bike_counts_path, merge_and_save_parquet
 
 from .transformations import (
     transform_bronze_to_silver,
@@ -43,7 +43,11 @@ def process_bike_month(
         month=start_date.month,
         storage_key="bronze_path",
     )
-    save_as_parquet(validated_bronze, bronze_path)
+    merge_and_save_parquet(
+        validated_bronze,
+        bronze_path,
+        key_columns=("countid",),
+    )
 
     silver = transform_bronze_to_silver(validated_bronze, counter_data)
     validated_silver = validate_silver_bike(silver)
@@ -53,4 +57,8 @@ def process_bike_month(
         month=start_date.month,
         storage_key="silver_path",
     )
-    save_as_parquet(validated_silver, silver_path)
+    merge_and_save_parquet(
+        validated_silver,
+        silver_path,
+        key_columns=("record_id",),
+    )

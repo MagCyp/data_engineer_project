@@ -5,7 +5,7 @@ from typing import Any
 from helpers import validate_month_range
 from storage import (
     get_weather_observations_path,
-    save_as_parquet,
+    merge_and_save_parquet,
     weather_observations_to_dataframe,
 )
 
@@ -48,7 +48,11 @@ def process_weather_month(
         month=start_date.month,
         storage_key="bronze_path",
     )
-    save_as_parquet(validated_bronze, bronze_path)
+    merge_and_save_parquet(
+        validated_bronze,
+        bronze_path,
+        key_columns=("location", "time"),
+    )
 
     silver_dataframe = transform_bronze_to_silver(validated_bronze)
     validated_silver = validate_silver_weather(silver_dataframe)
@@ -60,4 +64,8 @@ def process_weather_month(
         month=start_date.month,
         storage_key="silver_path",
     )
-    save_as_parquet(validated_silver, silver_path)
+    merge_and_save_parquet(
+        validated_silver,
+        silver_path,
+        key_columns=("location", "observed_at_utc"),
+    )
