@@ -14,6 +14,7 @@ apis:
 pipelines:
   weather:
     api: open_meteo_archive
+    available_from: "1940-01-01"
     default_city: New York
     locations:
       - name: New York
@@ -33,12 +34,14 @@ pipelines:
         longitude: 13.4050
 
   bike:
+    available_from: "2012-08-31"
     raw_files:
       counts: bicycle_counts.csv
       counters: bicycle_counters.csv
 
   mta_subway:
     api: ny_open_data
+    available_from: "2017-01-13"
     datasets:
       hourly_ridership_2017_2019:
         resource_id: t69i-h2me

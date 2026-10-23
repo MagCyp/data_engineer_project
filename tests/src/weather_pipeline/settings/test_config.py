@@ -23,6 +23,7 @@ def test_config():
 
     weather = config["pipelines"]["weather"]
     assert weather["api"] == "open_meteo_archive"
+    assert weather["available_from"] == "1940-01-01"
     assert weather["default_city"] == "New York"
     assert config["storage"] == {
         "raw_path": "data/raw/{pipeline_name}",
@@ -53,10 +54,12 @@ def test_config():
         for dataset in subway["datasets"].values()
     } == {"t69i-h2me", "wujg-7c2s", "5wq4-mkjj"}
     bike = config["pipelines"]["bike"]
+    assert bike["available_from"] == "2012-08-31"
     assert bike["raw_files"] == {
         "counts": "bicycle_counts.csv",
         "counters": "bicycle_counters.csv",
     }
+    assert subway["available_from"] == "2017-01-13"
 
 
 def test_get_named_api_and_pipeline_config() -> None:
