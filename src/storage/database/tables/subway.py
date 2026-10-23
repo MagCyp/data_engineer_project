@@ -36,7 +36,6 @@ subway_ridership = Table(
         name="pk_subway_ridership",
     ),
     CheckConstraint("ridership >= 0", name="ck_subway_ridership_count"),
-    CheckConstraint("transfers >= 0", name="ck_subway_transfers_count"),
     CheckConstraint(
         "transfers <= ridership",
         name="ck_subway_transfers_not_above_ridership",

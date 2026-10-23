@@ -57,3 +57,12 @@ def test_subway_source_record_rejects_transfers_above_ridership() -> None:
         match="transfers must not exceed ridership",
     ):
         SubwaySourceRecord.model_validate(payload)
+
+
+def test_subway_source_record_preserves_negative_transfer_estimate() -> None:
+    payload = make_source_record()
+    payload["transfers"] = "-1.0"
+
+    record = SubwaySourceRecord.model_validate(payload)
+
+    assert record.transfers == -1.0

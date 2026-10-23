@@ -254,62 +254,6 @@ def iter_subway_data(
         offset += len(page)
 
 
-def get_latest_subway_date(
-    resource_id: str,
-    base_url: str,
-    timeout_seconds: int,
-    *,
-    response_format: str = "json",
-    app_token: str | None = None,
-    max_retries: int = SOCRATA_DEFAULT_MAX_RETRIES,
-    retry_base_delay_seconds: float = (
-        SOCRATA_DEFAULT_RETRY_BASE_DELAY_SECONDS
-    ),
-    retry_max_delay_seconds: float = SOCRATA_DEFAULT_RETRY_MAX_DELAY_SECONDS,
-) -> date | None:
-    """Return the latest date currently published by a subway dataset."""
-    url = _build_dataset_url(base_url, resource_id, response_format)
-    if timeout_seconds <= 0:
-        raise ValueError("timeout_seconds must be greater than 0")
-    if app_token is not None:
-        app_token = app_token.strip()
-        if not app_token:
-            raise ValueError("app_token must not be blank")
-
-    payload = _request_json_array(
-        url,
-        {
-            "$select": "transit_timestamp",
-            "$order": "transit_timestamp DESC",
-            "$limit": 1,
-        },
-        timeout_seconds,
-        app_token,
-        _RetryPolicy(
-            max_retries=max_retries,
-            base_delay_seconds=retry_base_delay_seconds,
-            max_delay_seconds=retry_max_delay_seconds,
-        ),
-    )
-    if not payload:
-        return None
-
-    record = payload[0]
-    if not isinstance(record, dict):
-        raise RuntimeError("Latest subway API record must be a JSON object")
-    timestamp = record.get("transit_timestamp")
-    if not isinstance(timestamp, str):
-        raise RuntimeError(
-            "Latest subway API record must contain transit_timestamp"
-        )
-    try:
-        return datetime.fromisoformat(timestamp).date()
-    except ValueError as error:
-        raise RuntimeError(
-            f"Invalid latest subway timestamp: {timestamp}"
-        ) from error
-
-
 def get_subway_data(
     resource_id: str,
     base_url: str,

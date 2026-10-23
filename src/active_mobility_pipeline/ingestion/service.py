@@ -6,6 +6,7 @@ from active_mobility_pipeline.validation import (
     ActiveMobilityCountSourceRecord,
     ActiveMobilitySensorSourceRecord,
 )
+from common.socrata import get_latest_socrata_date
 from settings import get_api_config, get_pipeline_config
 
 from .client import (
@@ -68,6 +69,20 @@ def iter_count_records(
         start_date=start_date,
         end_date=end_date,
         page_size=page_size,
+        app_token=app_token,
+        **_request_options(api_config),
+    )
+
+
+def get_latest_available_date(
+    config: Mapping[str, Any],
+    *,
+    app_token: str | None = None,
+) -> date | None:
+    api_config, resource_id = _source_settings(config, "counts_resource_id")
+    return get_latest_socrata_date(
+        resource_id=resource_id,
+        timestamp_field="timestamp",
         app_token=app_token,
         **_request_options(api_config),
     )

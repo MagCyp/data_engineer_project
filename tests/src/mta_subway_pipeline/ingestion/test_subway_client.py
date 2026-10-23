@@ -8,7 +8,6 @@ import pytest
 
 from mta_subway_pipeline.ingestion import client
 from mta_subway_pipeline.ingestion.client import (
-    get_latest_subway_date,
     get_subway_data,
 )
 
@@ -117,49 +116,6 @@ def test_get_subway_data_rejects_invalid_date_range(
         )
 
     http_get.assert_not_called()
-
-
-def test_get_latest_subway_date_requests_newest_timestamp(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    http_get = Mock(
-        return_value=make_response(
-            200,
-            json=[{"transit_timestamp": "2026-10-14T23:00:00.000"}],
-        )
-    )
-    monkeypatch.setattr(httpx, "get", http_get)
-
-    latest_date = get_latest_subway_date(
-        resource_id="5wq4-mkjj",
-        base_url="https://data.ny.gov/resource",
-        timeout_seconds=60,
-        app_token="token",
-    )
-
-    assert latest_date == date(2026, 10, 14)
-    assert http_get.call_args.kwargs["params"] == {
-        "$select": "transit_timestamp",
-        "$order": "transit_timestamp DESC",
-        "$limit": 1,
-    }
-    assert http_get.call_args.kwargs["headers"] == {"X-App-Token": "token"}
-
-
-def test_get_latest_subway_date_returns_none_for_empty_dataset(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        httpx,
-        "get",
-        Mock(return_value=make_response(200, json=[])),
-    )
-
-    assert get_latest_subway_date(
-        resource_id="5wq4-mkjj",
-        base_url="https://data.ny.gov/resource",
-        timeout_seconds=60,
-    ) is None
 
 
 @pytest.mark.parametrize(

@@ -1,4 +1,4 @@
-from sqlalchemy import DateTime, Float, String
+from sqlalchemy import CheckConstraint, DateTime, Float, String
 
 from storage.database import LANDING_SCHEMA, metadata
 from storage.database.tables import subway_ridership
@@ -49,3 +49,15 @@ def test_subway_table_uses_expected_sql_types() -> None:
     assert isinstance(columns.transfers.type, Float)
     assert isinstance(columns.ingested_at.type, DateTime)
     assert columns.ingested_at.type.timezone is True
+
+
+def test_subway_table_allows_signed_transfer_estimates() -> None:
+    check_names = {
+        constraint.name
+        for constraint in subway_ridership.constraints
+        if isinstance(constraint, CheckConstraint)
+    }
+
+    assert "ck_subway_ridership_count" in check_names
+    assert "ck_subway_transfers_not_above_ridership" in check_names
+    assert "ck_subway_transfers_count" not in check_names

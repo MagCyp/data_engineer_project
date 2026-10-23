@@ -77,6 +77,31 @@ def test_open_dataset_preserves_requested_end_date() -> None:
     assert slices[0].end_date == date(2026, 10, 17)
 
 
+def test_get_latest_available_date_uses_open_dataset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    latest_date = Mock(return_value=date(2026, 10, 14))
+    monkeypatch.setattr(service, "get_latest_socrata_date", latest_date)
+
+    result = service.get_latest_available_date(
+        make_config(),
+        app_token="token",
+    )
+
+    assert result == date(2026, 10, 14)
+    latest_date.assert_called_once_with(
+        resource_id="5wq4-mkjj",
+        timestamp_field="transit_timestamp",
+        app_token="token",
+        base_url="https://data.ny.gov/resource",
+        timeout_seconds=60,
+        response_format="json",
+        max_retries=3,
+        retry_base_delay_seconds=1,
+        retry_max_delay_seconds=60,
+    )
+
+
 def test_fetch_subway_data_delegates_each_slice_to_client(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -87,7 +112,7 @@ def test_fetch_subway_data_delegates_each_slice_to_client(
     )
     monkeypatch.setattr(service, "iter_subway_data", iter_dataset)
     latest_date = Mock(return_value=date(2025, 1, 1))
-    monkeypatch.setattr(service, "get_latest_subway_date", latest_date)
+    monkeypatch.setattr(service, "get_latest_socrata_date", latest_date)
 
     records = service.fetch_subway_data(
         make_config(),
@@ -134,7 +159,7 @@ def test_fetch_subway_data_rejects_unpublished_end_date(
 ) -> None:
     monkeypatch.setattr(
         service,
-        "get_latest_subway_date",
+        "get_latest_socrata_date",
         Mock(return_value=date(2026, 10, 14)),
     )
     iter_dataset = Mock()

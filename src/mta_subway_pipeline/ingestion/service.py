@@ -3,13 +3,13 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Any
 
+from common.socrata import get_latest_socrata_date
 from helpers import validate_date_range
 from mta_subway_pipeline.ingestion.client import (
     SOCRATA_DEFAULT_MAX_RETRIES,
     SOCRATA_DEFAULT_RETRY_BASE_DELAY_SECONDS,
     SOCRATA_DEFAULT_RETRY_MAX_DELAY_SECONDS,
     SOCRATA_MAX_PAGE_SIZE,
-    get_latest_subway_date,
     iter_subway_data,
 )
 from mta_subway_pipeline.validation.models import SubwaySourceRecord
@@ -22,6 +22,26 @@ class SubwayDatasetSlice:
     resource_id: str
     start_date: date
     end_date: date
+
+
+def _request_options(api_config: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "base_url": str(api_config["base_url"]),
+        "timeout_seconds": int(api_config["timeout_seconds"]),
+        "response_format": str(api_config.get("response_format", "json")),
+        "max_retries": api_config.get(
+            "max_retries",
+            SOCRATA_DEFAULT_MAX_RETRIES,
+        ),
+        "retry_base_delay_seconds": api_config.get(
+            "retry_base_delay_seconds",
+            SOCRATA_DEFAULT_RETRY_BASE_DELAY_SECONDS,
+        ),
+        "retry_max_delay_seconds": api_config.get(
+            "retry_max_delay_seconds",
+            SOCRATA_DEFAULT_RETRY_MAX_DELAY_SECONDS,
+        ),
+    }
 
 
 def _year(
@@ -156,6 +176,34 @@ def get_subway_dataset_slices(
     )
 
 
+def get_latest_available_date(
+    config: Mapping[str, Any],
+    *,
+    app_token: str | None = None,
+) -> date | None:
+    pipeline_config = get_pipeline_config(config, "mta_subway")
+    open_datasets = [
+        dataset
+        for dataset in _configured_datasets(pipeline_config)
+        if dataset.end_date == date.max
+    ]
+    if len(open_datasets) != 1:
+        raise ValueError(
+            "Subway pipeline must configure exactly one open-ended dataset"
+        )
+
+    api_name = pipeline_config.get("api")
+    if not isinstance(api_name, str) or not api_name.strip():
+        raise ValueError("Subway pipeline must reference an API")
+    api_config = get_api_config(config, api_name)
+    return get_latest_socrata_date(
+        resource_id=open_datasets[0].resource_id,
+        timestamp_field="transit_timestamp",
+        app_token=app_token,
+        **_request_options(api_config),
+    )
+
+
 def iter_subway_records(
     config: Mapping[str, Any],
     *,
@@ -180,60 +228,32 @@ def iter_subway_records(
         for dataset in _configured_datasets(pipeline_config)
         if dataset.end_date == date.max
     }
-    for dataset_slice in dataset_slices:
-        if dataset_slice.resource_id not in open_resource_ids:
-            continue
-        latest_date = get_latest_subway_date(
-            resource_id=dataset_slice.resource_id,
-            base_url=str(api_config["base_url"]),
-            timeout_seconds=int(api_config["timeout_seconds"]),
-            response_format=str(api_config.get("response_format", "json")),
+    open_slices = [
+        dataset_slice
+        for dataset_slice in dataset_slices
+        if dataset_slice.resource_id in open_resource_ids
+    ]
+    if open_slices:
+        latest_date = get_latest_available_date(
+            config,
             app_token=app_token,
-            max_retries=api_config.get(
-                "max_retries",
-                SOCRATA_DEFAULT_MAX_RETRIES,
-            ),
-            retry_base_delay_seconds=api_config.get(
-                "retry_base_delay_seconds",
-                SOCRATA_DEFAULT_RETRY_BASE_DELAY_SECONDS,
-            ),
-            retry_max_delay_seconds=api_config.get(
-                "retry_max_delay_seconds",
-                SOCRATA_DEFAULT_RETRY_MAX_DELAY_SECONDS,
-            ),
         )
         if latest_date is None:
+            raise ValueError("Open-ended subway dataset contains no data")
+        if open_slices[-1].end_date > latest_date:
             raise ValueError(
-                f"Subway dataset '{dataset_slice.name}' contains no data"
-            )
-        if dataset_slice.end_date > latest_date:
-            raise ValueError(
-                f"end_date {dataset_slice.end_date} exceeds the latest "
+                f"end_date {open_slices[-1].end_date} exceeds the latest "
                 f"available subway date {latest_date}"
             )
 
     for dataset_slice in dataset_slices:
         yield from iter_subway_data(
             resource_id=dataset_slice.resource_id,
-            base_url=str(api_config["base_url"]),
-            timeout_seconds=int(api_config["timeout_seconds"]),
             start_date=dataset_slice.start_date,
             end_date=dataset_slice.end_date,
-            response_format=str(api_config.get("response_format", "json")),
             page_size=page_size,
             app_token=app_token,
-            max_retries=api_config.get(
-                "max_retries",
-                SOCRATA_DEFAULT_MAX_RETRIES,
-            ),
-            retry_base_delay_seconds=api_config.get(
-                "retry_base_delay_seconds",
-                SOCRATA_DEFAULT_RETRY_BASE_DELAY_SECONDS,
-            ),
-            retry_max_delay_seconds=api_config.get(
-                "retry_max_delay_seconds",
-                SOCRATA_DEFAULT_RETRY_MAX_DELAY_SECONDS,
-            ),
+            **_request_options(api_config),
         )
 
 

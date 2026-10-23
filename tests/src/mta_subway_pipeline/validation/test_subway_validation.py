@@ -62,6 +62,19 @@ def test_validate_bronze_subway_rejects_invalid_measure() -> None:
         validate_bronze_subway(bronze)
 
 
+def test_subway_validation_preserves_negative_transfer_estimate() -> None:
+    bronze = transform_source_to_bronze(
+        [source_record().model_copy(update={"transfers": -1.0})],
+        ingested_at=datetime(2026, 10, 18, 12, tzinfo=UTC),
+    )
+
+    validate_bronze_subway(bronze)
+    silver = transform_bronze_to_silver(bronze)
+
+    assert silver.item(0, "transfers") == -1.0
+    assert validate_silver_subway(silver) is silver
+
+
 def test_validate_silver_subway_rejects_duplicate_grain() -> None:
     silver = pl.concat([silver_dataframe(), silver_dataframe()]).cast(
         SUBWAY_SILVER_SCHEMA

@@ -209,7 +209,9 @@ sources:
               - not_null
 
           - name: transfers
-            description: Estimated number of transfers included in ridership.
+            description: >-
+              Estimated transfers included in ridership, preserving rare
+              negative values published by the MTA source.
             data_tests:
               - not_null
 

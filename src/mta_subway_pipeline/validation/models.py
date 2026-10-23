@@ -2,7 +2,13 @@ from datetime import datetime
 from typing import Literal, Self
 
 import polars as pl
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    FiniteFloat,
+    field_validator,
+    model_validator,
+)
 
 from common.validation import (
     Latitude,
@@ -95,7 +101,7 @@ class _SubwayRidership(BaseModel):
     payment_method: NonEmptyString
     fare_class_category: NonEmptyString
     ridership: NonNegativeFloat
-    transfers: NonNegativeFloat
+    transfers: FiniteFloat
     latitude: Latitude
     longitude: Longitude
 
