@@ -1,10 +1,10 @@
 version: 2
 
 models:
-  - name: bike_weather_daily
+  - name: active_mobility_weather_daily
     description: >-
-      Daily bicycle activity and New York weather at one counter and local
-      calendar date. Partial-hour counts are retained and flagged by coverage.
+      Daily bike, pedestrian, or scooter activity and New York weather at one
+      directional flow and local calendar date.
     columns:
       - name: date_day
         description: New York local calendar date.
@@ -15,22 +15,32 @@ models:
                 to: ref('dim_date')
                 field: date_day
 
-      - name: counter_id
-        description: Bicycle counter identifier.
+      - name: sensor_id
+        description: Active-mobility sensor identifier.
         data_tests:
           - not_null
           - relationships:
               arguments:
-                to: ref('dim_bicycle_counter')
-                field: counter_id
+                to: ref('dim_active_mobility_sensor')
+                field: sensor_id
 
-      - name: bike_count
-        description: Sum of included bicycle counts for the local day.
+      - name: flow_id
+        description: Directional travel-mode flow identifier.
+        data_tests:
+          - not_null
+
+      - name: travel_mode
+        description: Bike, pedestrian, or scooter.
+        data_tests:
+          - not_null
+
+      - name: mobility_count
+        description: Sum of valid active-mobility counts for the local day.
         data_tests:
           - not_null
 
       - name: valid_hours
-        description: Number of hours with complete valid 15-minute coverage.
+        description: Number of hours with complete source interval coverage.
 
       - name: is_complete_day
         description: >-
@@ -101,8 +111,8 @@ models:
 
   - name: mobility_weather_daily
     description: >-
-      New York daily weather with observed bike and subway activity. Activity
-      indexes are ratios to the average observed day in the available period.
+      New York daily weather with observed bike, pedestrian, and subway
+      activity. Indexes are ratios to the average observed day.
     columns:
       - name: date_day
         description: New York local calendar date and model grain.
@@ -125,11 +135,19 @@ models:
 
       - name: bike_observed_count
         description: >-
-          Sum across all reporting counter IDs; this is not a citywide traffic
+          Sum across all reporting sensor flows; this is not a citywide traffic
           estimate because physical locations may overlap.
 
       - name: bike_reporting_sensors
-        description: Number of distinct counter IDs with data for the day.
+        description: Number of distinct sensors with bike data for the day.
+        data_tests:
+          - not_null
+
+      - name: pedestrian_observed_count
+        description: Sum of pedestrian counts across reporting sensor flows.
+
+      - name: pedestrian_reporting_sensors
+        description: Number of distinct sensors with pedestrian data.
         data_tests:
           - not_null
 
@@ -143,6 +161,9 @@ models:
 
       - name: bike_activity_index
         description: Bike observed count divided by its period average.
+
+      - name: pedestrian_activity_index
+        description: Pedestrian observed count divided by its period average.
 
       - name: subway_activity_index
         description: Subway ridership divided by its period average.

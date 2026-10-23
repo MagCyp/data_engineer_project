@@ -21,23 +21,7 @@ snapshot-paths: ["snapshots"]
 vars:
   mobility_timezone: America/New_York
   mobility_weather_location: New York
-  bike_count_interval_minutes: 15
-  bike_valid_statuses: [0, 4, 8, 16]
   rainy_day_threshold_mm: 0
-
-seeds:
-  data_platform_analytics:
-    bicycle_counters:
-      +column_types:
-        id: bigint
-        name: text
-        domain: text
-        latitude: text
-        longitude: text
-        interval: integer
-        timezone: text
-        sens: text
-        counter: text
 
 clean-targets:         # directories to be removed by `dbt clean`
   - "target"

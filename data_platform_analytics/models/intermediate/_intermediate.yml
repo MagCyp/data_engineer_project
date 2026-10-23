@@ -1,19 +1,29 @@
 version: 2
 
 models:
-  - name: int_bike_counts_hourly
+  - name: int_active_mobility_counts_hourly
     description: >-
-      Bicycle counts aggregated to one row per counter and UTC hour without
-      filtering incomplete hours.
+      Active-mobility counts aggregated to one row per directional flow and
+      UTC hour without filtering incomplete hours.
     columns:
-      - name: counter_id
-        description: Identifier of the bicycle counter.
+      - name: sensor_id
+        description: Identifier of the counting location.
         data_tests:
           - not_null
           - relationships:
               arguments:
-                to: ref('stg_mobility__bike_counters')
-                field: counter_id
+                to: ref('stg_mobility__active_mobility_sensors')
+                field: sensor_id
+
+      - name: flow_id
+        description: Directional travel-mode flow identifier.
+        data_tests:
+          - not_null
+
+      - name: travel_mode
+        description: Bike, pedestrian, or scooter.
+        data_tests:
+          - not_null
 
       - name: observed_at_local
         description: Beginning of the observation hour in local wall-clock time.
@@ -30,8 +40,13 @@ models:
         data_tests:
           - not_null
 
-      - name: bike_count
-        description: Sum of bicycle counts recorded during the hour.
+      - name: interval_minutes
+        description: Source interval used to calculate expected coverage.
+        data_tests:
+          - not_null
+
+      - name: mobility_count
+        description: Sum of valid source counts recorded during the hour.
         data_tests:
           - not_null
 
@@ -42,15 +57,13 @@ models:
 
       - name: valid_source_record_count
         description: >-
-          Number of source intervals whose status is raw, modified, validated,
-          or certified and whose count is included in bike_count.
+          Number of raw or modified source intervals with a non-null count.
         data_tests:
           - not_null
 
       - name: problem_source_record_count
         description: >-
-          Number of excluded or deleted source intervals whose count is not
-          included in bike_count.
+          Number of deleted intervals or intervals with a null count.
         data_tests:
           - not_null
 

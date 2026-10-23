@@ -11,6 +11,14 @@ apis:
     retry_base_delay_seconds: 1
     retry_max_delay_seconds: 60
 
+  nyc_open_data:
+    base_url: https://data.cityofnewyork.us/resource
+    response_format: json
+    timeout_seconds: 60
+    max_retries: 3
+    retry_base_delay_seconds: 1
+    retry_max_delay_seconds: 60
+
 pipelines:
   weather:
     api: open_meteo_archive
@@ -33,11 +41,11 @@ pipelines:
         latitude: 52.5200
         longitude: 13.4050
 
-  bike:
+  active_mobility:
+    api: nyc_open_data
     available_from: "2012-08-31"
-    raw_files:
-      counts: bicycle_counts.csv
-      counters: bicycle_counters.csv
+    counts_resource_id: ct66-47at
+    sensors_resource_id: 6up2-gnw8
 
   mta_subway:
     api: ny_open_data
@@ -65,3 +73,5 @@ storage:
   raw_path: data/raw/{pipeline_name}
   bronze_path: data/bronze/{pipeline_name}/year={year}/month={month}
   silver_path: data/silver/{pipeline_name}/year={year}/month={month}
+  bronze_reference_path: data/bronze/{pipeline_name}/reference
+  silver_reference_path: data/silver/{pipeline_name}/reference

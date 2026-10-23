@@ -5,7 +5,7 @@ with source_dates as (
     union all
 
     select {{ to_mobility_date('observed_at_utc') }} as date_day
-    from {{ ref('stg_mobility__bike_counts') }}
+    from {{ ref('stg_mobility__active_mobility_counts') }}
 
     union all
 

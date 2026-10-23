@@ -37,38 +37,42 @@ models:
       - name: expected_hour_count
         description: Number of UTC hours in the New York local day (23, 24, or 25).
 
-  - name: dim_bicycle_counter
-    description: One row per bicycle counter from the source metadata seed.
+  - name: dim_active_mobility_sensor
+    description: One row per NYC active-mobility sensor from the API snapshot.
     columns:
-      - name: counter_id
-        description: Bicycle counter identifier and dimension grain.
+      - name: sensor_id
+        description: Sensor identifier and dimension grain.
         data_tests:
           - not_null
           - unique
 
-      - name: counter_name
-        description: Human-readable counter name.
+      - name: sensor_name
+        description: Human-readable sensor name.
 
-      - name: domain_name
-        description: Domain name supplied by the source.
+      - name: operator_name
+        description: Organization operating the sensor.
 
       - name: latitude
-        description: Counter latitude in decimal degrees.
+        description: Sensor latitude in decimal degrees.
+        data_tests:
+          - not_null
 
       - name: longitude
-        description: Counter longitude in decimal degrees.
+        description: Sensor longitude in decimal degrees.
+        data_tests:
+          - not_null
 
       - name: recording_interval_minutes
-        description: Recording interval declared by the counter metadata.
+        description: Recording interval declared by sensor metadata.
 
-      - name: source_timezone
-        description: Original timezone label supplied by the source.
+      - name: timezone
+        description: IANA timezone applied to floating source timestamps.
 
-      - name: direction_detection_code
-        description: Source code describing whether direction is distinguished.
+      - name: travel_modes
+        description: Comma-separated modes supported by the sensor.
 
-      - name: counter_serial_number
-        description: Serial number of the linked physical counter, when available.
+      - name: is_directional
+        description: Whether the sensor reports separate directional flows.
 
   - name: dim_subway_station
     description: >-

@@ -37,93 +37,90 @@ models:
       - name: ingested_at
         description: UTC timestamp when the Python pipeline ingested the row.
 
-  - name: stg_mobility__bike_counts
+  - name: stg_mobility__active_mobility_counts
     description: >-
-      Fifteen-minute bicycle counts exposed from the landing layer without
-      changing their granularity.
+      Bicycle, pedestrian, and scooter counts exposed without changing source
+      interval granularity.
     columns:
-      - name: record_id
-        description: Unique source record identifier and model grain.
-        data_tests:
-          - not_null
-          - unique
-
-      - name: counter_id
-        description: Identifier of the bicycle counter.
+      - name: sensor_id
+        description: Identifier of the counting location.
         data_tests:
           - not_null
           - relationships:
               arguments:
-                to: ref('stg_mobility__bike_counters')
-                field: counter_id
+                to: ref('stg_mobility__active_mobility_sensors')
+                field: sensor_id
 
-      - name: timezone
-        description: IANA timezone used for the observation.
+      - name: flow_id
+        description: Identifier of one directional travel-mode flow.
+        data_tests:
+          - not_null
 
-      - name: observed_at_local
-        description: Local observation timestamp without a timezone offset.
+      - name: travel_mode
+        description: Bike, pedestrian, or scooter.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['bike', 'pedestrian', 'scooter']
 
       - name: observed_at_utc
         description: Observation timestamp normalized to UTC.
         data_tests:
           - not_null
 
-      - name: bike_count
-        description: Number of bicycles recorded during the interval.
-
-      - name: status
-        description: Status code supplied by the counter source.
-
-      - name: ingested_at
-        description: UTC timestamp when the Python pipeline ingested the row.
-
-  - name: stg_mobility__bike_counters
-    description: >-
-      Bicycle counter reference data loaded from the bicycle_counters seed,
-      with normalized column names and coordinate types.
-    columns:
-      - name: counter_id
-        description: Unique identifier of the bicycle counter.
-        data_tests:
-          - not_null
-          - unique
-
-      - name: counter_name
-        description: Human-readable bicycle counter name.
-
-      - name: domain_name
-        description: Domain name supplied by the source.
-
-      - name: latitude
-        description: Counter latitude in decimal degrees.
-
-      - name: longitude
-        description: Counter longitude in decimal degrees.
-
-      - name: recording_interval_minutes
-        description: Data recording interval in minutes, normally 15 or 60.
+      - name: interval_minutes
+        description: Source measurement interval in minutes.
         data_tests:
           - accepted_values:
               arguments:
                 values: [15, 60]
                 quote: false
 
-      - name: source_timezone
-        description: Timezone label supplied by the source.
+      - name: mobility_count
+        description: Observed count, nullable when the source omitted a value.
 
-      - name: direction_detection_code
-        description: >-
-          Direction detection code: 1 means IN, 2 means OUT, and 5 means
-          the counter does not distinguish direction.
+      - name: source_status
+        description: Raw, modified, or deleted source status.
+
+      - name: ingested_at
+        description: UTC timestamp when the Python pipeline ingested the row.
+
+  - name: stg_mobility__active_mobility_sensors
+    description: Current metadata snapshot for active-mobility sensors.
+    columns:
+      - name: sensor_id
+        description: Unique sensor identifier.
+        data_tests:
+          - not_null
+          - unique
+
+      - name: sensor_name
+        description: Human-readable sensor name.
+
+      - name: latitude
+        description: Sensor latitude in decimal degrees.
+        data_tests:
+          - not_null
+
+      - name: longitude
+        description: Sensor longitude in decimal degrees.
+        data_tests:
+          - not_null
+
+      - name: recording_interval_minutes
+        description: Sensor recording interval in minutes.
         data_tests:
           - accepted_values:
               arguments:
-                values: ['1', '2', '5']
+                values: [15, 60]
+                quote: false
 
-      - name: counter_serial_number
-        description: >-
-          Serial number of the physical counter currently linked to the
-          counting site, when available.
+      - name: travel_modes
+        description: Comma-separated modes supported by the sensor.
+
+      - name: operator_name
+        description: Organization operating the sensor.
 
   - name: stg_mobility__subway_ridership
     description: >-

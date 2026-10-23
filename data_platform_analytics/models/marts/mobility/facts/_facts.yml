@@ -23,19 +23,29 @@ models:
                 to: ref('dim_date')
                 field: date_day
 
-  - name: fct_bicycle_counts_hourly
+  - name: fct_active_mobility_counts_hourly
     description: >-
-      One bicycle counter per UTC hour, with explicit coverage and source
-      status quality indicators.
+      One directional bike, pedestrian, or scooter flow per UTC hour, with
+      explicit source-coverage indicators.
     columns:
-      - name: counter_id
-        description: Bicycle counter identifier.
+      - name: sensor_id
+        description: Active-mobility sensor identifier.
         data_tests:
           - not_null
           - relationships:
               arguments:
-                to: ref('dim_bicycle_counter')
-                field: counter_id
+                to: ref('dim_active_mobility_sensor')
+                field: sensor_id
+
+      - name: flow_id
+        description: Directional travel-mode flow identifier.
+        data_tests:
+          - not_null
+
+      - name: travel_mode
+        description: Bike, pedestrian, or scooter.
+        data_tests:
+          - not_null
 
       - name: observed_at_utc
         description: UTC observation hour.
@@ -51,8 +61,8 @@ models:
                 to: ref('dim_date')
                 field: date_day
 
-      - name: bike_count
-        description: Sum of counts with an included source status.
+      - name: mobility_count
+        description: Sum of raw or modified non-null counts.
         data_tests:
           - not_null
 
@@ -60,23 +70,23 @@ models:
         description: Number of all source intervals received for the hour.
 
       - name: valid_source_record_count
-        description: Number of intervals included in bike_count.
+        description: Number of intervals included in mobility_count.
 
       - name: problem_source_record_count
         description: Number of excluded or deleted source intervals.
 
       - name: expected_record_count
-        description: Expected number of 15-minute records in a UTC hour.
+        description: Expected source intervals for this flow and UTC hour.
         data_tests:
           - accepted_values:
               arguments:
-                values: [4]
+                values: [1, 4]
                 quote: false
 
       - name: is_complete_hour
         description: >-
-          True when all four expected records are valid and none is excluded
-          or deleted.
+          True when received, valid, and expected interval counts agree and
+          no source row is deleted or missing a value.
         data_tests:
           - not_null
 

@@ -33,6 +33,8 @@ def test_config():
         "silver_path": (
             "data/silver/{pipeline_name}/year={year}/month={month}"
         ),
+        "bronze_reference_path": "data/bronze/{pipeline_name}/reference",
+        "silver_reference_path": "data/silver/{pipeline_name}/reference",
     }
 
     assert weather["locations"]
@@ -53,11 +55,12 @@ def test_config():
         dataset["resource_id"]
         for dataset in subway["datasets"].values()
     } == {"t69i-h2me", "wujg-7c2s", "5wq4-mkjj"}
-    bike = config["pipelines"]["bike"]
-    assert bike["available_from"] == "2012-08-31"
-    assert bike["raw_files"] == {
-        "counts": "bicycle_counts.csv",
-        "counters": "bicycle_counters.csv",
+    active_mobility = config["pipelines"]["active_mobility"]
+    assert active_mobility == {
+        "api": "nyc_open_data",
+        "available_from": "2012-08-31",
+        "counts_resource_id": "ct66-47at",
+        "sensors_resource_id": "6up2-gnw8",
     }
     assert subway["available_from"] == "2017-01-13"
 

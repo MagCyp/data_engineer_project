@@ -1,14 +1,14 @@
 from .database import LANDING_SCHEMA, get_database_url, get_engine, metadata
 from .datasets import (
-    BIKE_COUNTS_FILENAME,
-    BIKE_PIPELINE_NAME,
+    ACTIVE_MOBILITY_COUNTS_FILENAME,
+    ACTIVE_MOBILITY_PIPELINE_NAME,
+    ACTIVE_MOBILITY_SENSORS_FILENAME,
     SUBWAY_PIPELINE_NAME,
     SUBWAY_RIDERSHIP_FILENAME,
     WEATHER_OBSERVATIONS_FILENAME,
     WEATHER_PIPELINE_NAME,
-    get_bike_counts_path,
-    get_bike_raw_counters_path,
-    get_bike_raw_counts_path,
+    get_active_mobility_counts_path,
+    get_active_mobility_sensors_path,
     get_subway_ridership_path,
     get_weather_observations_path,
     weather_observations_to_dataframe,
@@ -16,8 +16,9 @@ from .datasets import (
 from .files import merge_and_save_parquet, models_to_dataframe, save_as_parquet
 
 __all__ = [
-    "BIKE_COUNTS_FILENAME",
-    "BIKE_PIPELINE_NAME",
+    "ACTIVE_MOBILITY_COUNTS_FILENAME",
+    "ACTIVE_MOBILITY_PIPELINE_NAME",
+    "ACTIVE_MOBILITY_SENSORS_FILENAME",
     "SUBWAY_PIPELINE_NAME",
     "SUBWAY_RIDERSHIP_FILENAME",
     "WEATHER_OBSERVATIONS_FILENAME",
@@ -25,9 +26,8 @@ __all__ = [
     "LANDING_SCHEMA",
     "get_database_url",
     "get_engine",
-    "get_bike_counts_path",
-    "get_bike_raw_counters_path",
-    "get_bike_raw_counts_path",
+    "get_active_mobility_counts_path",
+    "get_active_mobility_sensors_path",
     "get_subway_ridership_path",
     "get_weather_observations_path",
     "metadata",
