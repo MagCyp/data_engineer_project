@@ -1,8 +1,7 @@
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from typing import Any
-from zoneinfo import ZoneInfo
 
 from helpers import validate_date_range
 from mta_subway_pipeline.ingestion.client import (
@@ -10,12 +9,10 @@ from mta_subway_pipeline.ingestion.client import (
     SOCRATA_DEFAULT_RETRY_BASE_DELAY_SECONDS,
     SOCRATA_DEFAULT_RETRY_MAX_DELAY_SECONDS,
     SOCRATA_MAX_PAGE_SIZE,
+    get_latest_subway_date,
     iter_subway_data,
 )
-from mta_subway_pipeline.validation.models import (
-    SUBWAY_LOCAL_TIMEZONE,
-    SubwaySourceRecord,
-)
+from mta_subway_pipeline.validation.models import SubwaySourceRecord
 from settings import get_api_config, get_pipeline_config
 
 
@@ -25,23 +22,6 @@ class SubwayDatasetSlice:
     resource_id: str
     start_date: date
     end_date: date
-
-
-def _current_date() -> date:
-    return datetime.now(ZoneInfo(SUBWAY_LOCAL_TIMEZONE)).date()
-
-
-def _shift_end_from_current_week(end_date: date) -> date:
-    today = _current_date()
-    end_week = end_date.isocalendar()
-    current_week = today.isocalendar()
-    if (end_week.year, end_week.week) == (
-        current_week.year,
-        current_week.week,
-    ):
-        # Current-week data may not be ready because the source updates weekly.
-        return end_date - timedelta(weeks=1)
-    return end_date
 
 
 def _year(
@@ -147,12 +127,6 @@ def _dataset_slices(
                 f"No subway dataset covers {cursor} through {missing_end}"
             )
 
-        requested_slice_end = slice_end
-        if dataset.end_date == date.max:
-            slice_end = _shift_end_from_current_week(slice_end)
-            if slice_end < slice_start:
-                return slices
-
         slices.append(
             SubwayDatasetSlice(
                 name=dataset.name,
@@ -162,8 +136,6 @@ def _dataset_slices(
             )
         )
         if slice_end == end_date:
-            return slices
-        if slice_end < requested_slice_end:
             return slices
         cursor = slice_end + timedelta(days=1)
 
@@ -198,11 +170,49 @@ def iter_subway_records(
         raise ValueError("Subway pipeline must reference an API")
     api_config = get_api_config(config, api_name)
 
-    for dataset_slice in _dataset_slices(
+    dataset_slices = _dataset_slices(
         pipeline_config,
         start_date=start_date,
         end_date=end_date,
-    ):
+    )
+    open_resource_ids = {
+        dataset.resource_id
+        for dataset in _configured_datasets(pipeline_config)
+        if dataset.end_date == date.max
+    }
+    for dataset_slice in dataset_slices:
+        if dataset_slice.resource_id not in open_resource_ids:
+            continue
+        latest_date = get_latest_subway_date(
+            resource_id=dataset_slice.resource_id,
+            base_url=str(api_config["base_url"]),
+            timeout_seconds=int(api_config["timeout_seconds"]),
+            response_format=str(api_config.get("response_format", "json")),
+            app_token=app_token,
+            max_retries=api_config.get(
+                "max_retries",
+                SOCRATA_DEFAULT_MAX_RETRIES,
+            ),
+            retry_base_delay_seconds=api_config.get(
+                "retry_base_delay_seconds",
+                SOCRATA_DEFAULT_RETRY_BASE_DELAY_SECONDS,
+            ),
+            retry_max_delay_seconds=api_config.get(
+                "retry_max_delay_seconds",
+                SOCRATA_DEFAULT_RETRY_MAX_DELAY_SECONDS,
+            ),
+        )
+        if latest_date is None:
+            raise ValueError(
+                f"Subway dataset '{dataset_slice.name}' contains no data"
+            )
+        if dataset_slice.end_date > latest_date:
+            raise ValueError(
+                f"end_date {dataset_slice.end_date} exceeds the latest "
+                f"available subway date {latest_date}"
+            )
+
+    for dataset_slice in dataset_slices:
         yield from iter_subway_data(
             resource_id=dataset_slice.resource_id,
             base_url=str(api_config["base_url"]),

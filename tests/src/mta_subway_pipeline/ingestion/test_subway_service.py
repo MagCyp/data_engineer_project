@@ -65,11 +65,7 @@ def test_get_subway_dataset_slices_splits_range_between_resources() -> None:
     )
 
 
-def test_open_dataset_shifts_end_date_when_it_is_in_current_week(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(service, "_current_date", lambda: date(2026, 10, 17))
-
+def test_open_dataset_preserves_requested_end_date() -> None:
     slices = service.get_subway_dataset_slices(
         make_config(),
         start_date=date(2026, 10, 1),
@@ -78,34 +74,7 @@ def test_open_dataset_shifts_end_date_when_it_is_in_current_week(
 
     assert len(slices) == 1
     assert slices[0].resource_id == "5wq4-mkjj"
-    assert slices[0].end_date == date(2026, 10, 10)
-
-
-def test_open_dataset_keeps_end_date_from_previous_week(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(service, "_current_date", lambda: date(2026, 10, 17))
-
-    slices = service.get_subway_dataset_slices(
-        make_config(),
-        start_date=date(2026, 10, 1),
-        end_date=date(2026, 10, 11),
-    )
-
-    assert len(slices) == 1
-    assert slices[0].end_date == date(2026, 10, 11)
-
-
-def test_open_dataset_returns_no_slice_when_shift_precedes_start(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(service, "_current_date", lambda: date(2026, 10, 17))
-
-    assert service.get_subway_dataset_slices(
-        make_config(),
-        start_date=date(2026, 10, 12),
-        end_date=date(2026, 10, 17),
-    ) == []
+    assert slices[0].end_date == date(2026, 10, 17)
 
 
 def test_fetch_subway_data_delegates_each_slice_to_client(
@@ -117,6 +86,8 @@ def test_fetch_subway_data_delegates_each_slice_to_client(
         side_effect=[iter([first_record]), iter([second_record])]
     )
     monkeypatch.setattr(service, "iter_subway_data", iter_dataset)
+    latest_date = Mock(return_value=date(2025, 1, 1))
+    monkeypatch.setattr(service, "get_latest_subway_date", latest_date)
 
     records = service.fetch_subway_data(
         make_config(),
@@ -127,6 +98,7 @@ def test_fetch_subway_data_delegates_each_slice_to_client(
     )
 
     assert records == [first_record, second_record]
+    latest_date.assert_called_once()
     assert iter_dataset.call_args_list == [
         call(
             resource_id="wujg-7c2s",
@@ -155,6 +127,33 @@ def test_fetch_subway_data_delegates_each_slice_to_client(
             retry_max_delay_seconds=60,
         ),
     ]
+
+
+def test_fetch_subway_data_rejects_unpublished_end_date(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        service,
+        "get_latest_subway_date",
+        Mock(return_value=date(2026, 10, 14)),
+    )
+    iter_dataset = Mock()
+    monkeypatch.setattr(service, "iter_subway_data", iter_dataset)
+
+    with pytest.raises(
+        ValueError,
+        match=(
+            "end_date 2026-10-17 exceeds the latest available "
+            "subway date 2026-10-14"
+        ),
+    ):
+        service.fetch_subway_data(
+            make_config(),
+            start_date=date(2026, 10, 1),
+            end_date=date(2026, 10, 17),
+        )
+
+    iter_dataset.assert_not_called()
 
 
 def test_get_subway_dataset_slices_rejects_uncovered_range() -> None:
