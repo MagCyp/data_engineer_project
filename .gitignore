@@ -2,8 +2,13 @@
 .pytest_cache/
 .ruff_cache/
 .env
-data/
-logs/
+/data/
+/logs/
+
+/airflow/logs/*
+!/airflow/logs/.gitkeep
+/airflow/config/*
+!/airflow/config/.gitkeep
 
 __pycache__/
 *.py[cod]
