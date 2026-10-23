@@ -1,3 +1,5 @@
+# pyright: reportMissingImports=false
+
 from airflow.providers.standard.operators.bash import BashOperator
 from airflow.sdk import DAG
 
