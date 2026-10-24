@@ -93,7 +93,16 @@ services:
 
   airflow-init:
     <<: *airflow-common
-    command: version
+    command:
+      - bash
+      - -c
+      - |
+        set -e
+        airflow version
+        airflow pools set weather_pipeline 1 "Weather pipeline writers"
+        airflow pools set active_mobility_pipeline 1 "Active mobility pipeline writers"
+        airflow pools set subway_pipeline 1 "Subway pipeline writers"
+        airflow pools set dbt_build 1 "dbt model builders"
     environment:
       <<: *airflow-common-environment
       _AIRFLOW_DB_MIGRATE: "true"

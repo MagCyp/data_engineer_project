@@ -7,6 +7,10 @@ from airflow.providers.standard.operators.bash import BashOperator
 from airflow.sdk import DAG
 
 PROJECT_DIRECTORY = "/opt/airflow/project"
+WEATHER_PIPELINE_POOL = "weather_pipeline"
+ACTIVE_MOBILITY_PIPELINE_POOL = "active_mobility_pipeline"
+SUBWAY_PIPELINE_POOL = "subway_pipeline"
+DBT_BUILD_POOL = "dbt_build"
 RESOLVED_DATE_ENV = {
     "START_DATE": (
         "{{ ti.xcom_pull(task_ids='validate_dates').split()[0] }}"
@@ -64,6 +68,7 @@ def create_mobility_dag(
             retries=2,
             retry_delay=timedelta(minutes=5),
             execution_timeout=timedelta(hours=2),
+            pool=WEATHER_PIPELINE_POOL,
             do_xcom_push=False,
         )
 
@@ -79,6 +84,7 @@ def create_mobility_dag(
             retries=2,
             retry_delay=timedelta(minutes=5),
             execution_timeout=pipeline_timeout,
+            pool=ACTIVE_MOBILITY_PIPELINE_POOL,
             do_xcom_push=False,
         )
 
@@ -94,6 +100,7 @@ def create_mobility_dag(
             retries=2,
             retry_delay=timedelta(minutes=5),
             execution_timeout=pipeline_timeout,
+            pool=SUBWAY_PIPELINE_POOL,
             do_xcom_push=False,
         )
 
@@ -109,6 +116,7 @@ def create_mobility_dag(
             retries=1,
             retry_delay=timedelta(minutes=2),
             execution_timeout=timedelta(hours=1),
+            pool=DBT_BUILD_POOL,
             do_xcom_push=False,
         )
 
