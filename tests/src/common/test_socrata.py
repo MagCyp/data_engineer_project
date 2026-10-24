@@ -4,6 +4,7 @@ from unittest.mock import Mock
 import httpx
 import pytest
 
+from common import http as http_client
 from common import socrata
 
 
@@ -43,6 +44,9 @@ def test_get_latest_socrata_date_queries_configured_field(
         timeout_seconds=60,
         timestamp_field="observed_at",
         app_token="token",
+        max_retries=3,
+        retry_base_delay_seconds=1,
+        retry_max_delay_seconds=60,
     )
 
     assert latest_date == date(2026, 10, 23)
@@ -71,6 +75,9 @@ def test_get_latest_socrata_date_returns_none_for_empty_dataset(
         base_url="https://data.example.org/resource",
         timeout_seconds=60,
         timestamp_field="observed_at",
+        max_retries=3,
+        retry_base_delay_seconds=1,
+        retry_max_delay_seconds=60,
     ) is None
 
 
@@ -92,7 +99,7 @@ def test_get_latest_socrata_date_retries_rate_limit(
     )
     sleep = Mock()
     monkeypatch.setattr(httpx, "get", http_get)
-    monkeypatch.setattr(socrata.time, "sleep", sleep)
+    monkeypatch.setattr(http_client.time, "sleep", sleep)
 
     result = socrata.get_latest_socrata_date(
         resource_id="abcd-1234",
@@ -100,6 +107,8 @@ def test_get_latest_socrata_date_retries_rate_limit(
         timeout_seconds=60,
         timestamp_field="observed_at",
         max_retries=1,
+        retry_base_delay_seconds=1,
+        retry_max_delay_seconds=60,
     )
 
     assert result == date(2026, 10, 23)
@@ -114,4 +123,7 @@ def test_get_latest_socrata_date_rejects_unsafe_field() -> None:
             base_url="https://data.example.org/resource",
             timeout_seconds=60,
             timestamp_field="timestamp DESC LIMIT 100",
+            max_retries=3,
+            retry_base_delay_seconds=1,
+            retry_max_delay_seconds=60,
         )

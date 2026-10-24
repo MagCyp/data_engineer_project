@@ -164,11 +164,35 @@ Use the same start and end month/year to load a single period.
 Each run validates source boundaries, runs the three independent data
 pipelines in parallel, and starts `dbt build` only after all of them succeed.
 
+## Failure and recovery
+
+- API clients retry temporary network errors, rate limits, and retryable `5xx`
+  responses with bounded exponential backoff. Open-Meteo and Socrata settings
+  are configured in `config/project.yml`.
+- Each ingestion task has two Airflow retries; `dbt_build` has one. A retry is
+  scoped to the failed task, so tasks that already succeeded are not rerun.
+- If all retries are exhausted, the DAG remains failed and `dbt_build` does
+  not run. After the API recovers, select the failed task in Grid or Graph
+  view and clear only that task to run it again.
+- Parquet writes use a temporary file followed by an atomic replace. An API
+  failure happens before a write, and a write failure leaves the previous
+  partition readable. A later retry merges by business key instead of
+  duplicating existing rows.
+
+The failure path is covered by client, pipeline, CLI, and atomic-write tests.
+A controlled Airflow smoke test also verified that a task can fail once,
+retry successfully, and release its downstream task without rerunning
+successful siblings.
+
 ## Configuration
 
 Project and source configuration lives in
 [`config/project.yml`](config/project.yml). It contains API endpoints,
 resource IDs, source boundaries, locations, and storage paths.
+
+Shared HTTP timeout and retry settings live once in the top-level `http`
+section. Every configured API inherits them; an API may override an individual
+value only when it genuinely needs different behavior.
 
 Docker Compose has local defaults. To override them:
 

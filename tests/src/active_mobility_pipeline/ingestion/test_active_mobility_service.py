@@ -8,14 +8,16 @@ from active_mobility_pipeline.ingestion import service
 
 def make_config() -> dict[str, object]:
     return {
+        "http": {
+            "timeout_seconds": 60,
+            "max_retries": 3,
+            "retry_base_delay_seconds": 1,
+            "retry_max_delay_seconds": 60,
+        },
         "apis": {
             "nyc_open_data": {
                 "base_url": "https://data.cityofnewyork.us/resource",
                 "response_format": "json",
-                "timeout_seconds": 60,
-                "max_retries": 3,
-                "retry_base_delay_seconds": 1,
-                "retry_max_delay_seconds": 60,
             }
         },
         "pipelines": {

@@ -21,7 +21,16 @@ def get_api_config(
     api_name: str,
 ) -> Mapping[str, Any]:
     """Return configuration for a named external API."""
-    return _get_named_config(config, section="apis", name=api_name, label="API")
+    api_config = _get_named_config(
+        config,
+        section="apis",
+        name=api_name,
+        label="API",
+    )
+    http_config = config.get("http")
+    if not isinstance(http_config, Mapping):
+        raise ValueError("HTTP configuration must be a mapping")
+    return {**http_config, **api_config}
 
 
 def get_pipeline_config(

@@ -11,10 +11,15 @@ from weather_pipeline.validation.models import CityParams, HourlyWeatherResponse
 @pytest.fixture
 def config() -> dict[str, Any]:
     return {
+        "http": {
+            "timeout_seconds": 60,
+            "max_retries": 3,
+            "retry_base_delay_seconds": 1,
+            "retry_max_delay_seconds": 60,
+        },
         "apis": {
             "open_meteo_archive": {
                 "base_url": "https://archive-api.open-meteo.com/v1/archive",
-                "timeout_seconds": 30,
             }
         },
         "pipelines": {
@@ -103,9 +108,12 @@ def test_fetch_weather_for_location_delegates_to_client(
     fetch_weather.assert_called_once_with(
         city_params=city_params,
         base_url="https://archive-api.open-meteo.com/v1/archive",
-        timeout_seconds=30,
+        timeout_seconds=60,
         start_date=date(2024, 1, 1),
         end_date=date(2024, 1, 2),
+        max_retries=3,
+        retry_base_delay_seconds=1.0,
+        retry_max_delay_seconds=60.0,
     )
 
 
@@ -138,7 +146,10 @@ def test_fetch_weather_for_location_uses_default_city(
     fetch_weather.assert_called_once_with(
         city_params=new_york,
         base_url="https://archive-api.open-meteo.com/v1/archive",
-        timeout_seconds=30,
+        timeout_seconds=60,
         start_date=date(2024, 1, 1),
         end_date=date(2024, 1, 2),
+        max_retries=3,
+        retry_base_delay_seconds=1.0,
+        retry_max_delay_seconds=60.0,
     )

@@ -19,7 +19,12 @@ def test_config():
     assert weather_api["base_url"] == (
         "https://archive-api.open-meteo.com/v1/archive"
     )
-    assert weather_api["timeout_seconds"] == 30
+    assert config["http"] == {
+        "timeout_seconds": 60,
+        "max_retries": 3,
+        "retry_base_delay_seconds": 1,
+        "retry_max_delay_seconds": 60,
+    }
 
     weather = config["pipelines"]["weather"]
     assert weather["api"] == "open_meteo_archive"
@@ -73,6 +78,8 @@ def test_get_named_api_and_pipeline_config() -> None:
 
     assert api["base_url"] == "https://data.ny.gov/resource"
     assert api["response_format"] == "json"
+    assert api["timeout_seconds"] == 60
+    assert api["max_retries"] == 3
     assert pipeline["api"] == "ny_open_data"
 
 

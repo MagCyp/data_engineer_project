@@ -53,4 +53,7 @@ def fetch_weather_for_location(
         timeout_seconds=int(api_config["timeout_seconds"]),
         start_date=start_date,
         end_date=end_date,
+        max_retries=api_config["max_retries"],
+        retry_base_delay_seconds=api_config["retry_base_delay_seconds"],
+        retry_max_delay_seconds=api_config["retry_max_delay_seconds"],
     )

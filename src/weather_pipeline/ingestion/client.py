@@ -1,7 +1,6 @@
 from datetime import date
 
-import httpx
-
+from common.http import RetryPolicy, get_with_retry
 from helpers import validate_date_range
 from weather_pipeline.validation.models import (
     CityParams,
@@ -15,8 +14,6 @@ HOURLY_PARAMETERS = (
     "precipitation",
     "relative_humidity_2m",
 )
-
-
 def get_weather_data(
     city_params: CityParams,
     base_url: str,
@@ -24,6 +21,9 @@ def get_weather_data(
     *,
     start_date: date,
     end_date: date,
+    max_retries: int,
+    retry_base_delay_seconds: float,
+    retry_max_delay_seconds: float,
 ) -> HourlyWeatherResponse:
     """Fetch and validate historical hourly weather data."""
     validate_date_range(start_date, end_date)
@@ -37,16 +37,19 @@ def get_weather_data(
         "timezone": "GMT",
     }
 
-    try:
-        response = httpx.get(base_url, params=params, timeout=timeout_seconds)
-        response.raise_for_status()
-    except httpx.RequestError as error:
-        raise RuntimeError(
-            f"An error occurred while requesting weather data: {error}"
-        ) from error
-    except httpx.HTTPStatusError as error:
-        raise RuntimeError(
-            f"HTTP error occurred: {error.response.status_code} - {error.response.text}"
-        ) from error
+    retry_policy = RetryPolicy(
+        max_retries=max_retries,
+        base_delay_seconds=retry_base_delay_seconds,
+        max_delay_seconds=retry_max_delay_seconds,
+    )
+
+    response = get_with_retry(
+        base_url,
+        params=params,
+        headers=None,
+        timeout_seconds=timeout_seconds,
+        retry_policy=retry_policy,
+        request_name="weather data",
+    )
 
     return HourlyWeatherResponse.model_validate(response.json())

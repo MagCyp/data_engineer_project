@@ -147,3 +147,30 @@ def test_main_rejects_invalid_date() -> None:
                 "2025-01-31",
             ]
         )
+
+
+def test_pipeline_failure_stops_before_warehouse(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = {"pipelines": {"weather": {"default_city": "New York"}}}
+    warehouse = Mock()
+    monkeypatch.setattr(cli, "load_config", Mock(return_value=config))
+    monkeypatch.setattr(
+        cli,
+        "backfill_weather",
+        Mock(side_effect=RuntimeError("API unavailable")),
+    )
+    monkeypatch.setattr(cli, "load_weather_range", warehouse)
+
+    with pytest.raises(RuntimeError, match="API unavailable"):
+        cli.main(
+            [
+                "pipeline",
+                "--start-date",
+                "2025-01-01",
+                "--end-date",
+                "2025-01-02",
+            ]
+        )
+
+    warehouse.assert_not_called()

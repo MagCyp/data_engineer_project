@@ -6,6 +6,7 @@ from unittest.mock import Mock
 import httpx
 import pytest
 
+from common import http as http_client
 from weather_pipeline.ingestion.client import get_weather_data
 from weather_pipeline.validation.models import CityParams, HourlyWeatherResponse
 
@@ -41,8 +42,10 @@ def test_get_weather_data_requests_historical_hourly_weather(
         url: str,
         *,
         params: dict[str, object],
+        headers: dict[str, str] | None,
         timeout: int,
     ) -> httpx.Response:
+        assert headers is None
         captured_request.update(url=url, params=params, timeout=timeout)
         return make_response(200, json=hourly_weather_payload)
 
@@ -55,6 +58,9 @@ def test_get_weather_data_requests_historical_hourly_weather(
         timeout_seconds=30,
         start_date=date(2024, 1, 1),
         end_date=date(2024, 1, 2),
+        max_retries=3,
+        retry_base_delay_seconds=1,
+        retry_max_delay_seconds=60,
     )
 
     assert result is expected_weather
@@ -93,6 +99,9 @@ def test_get_weather_data_rejects_invalid_date_range(
             30,
             start_date=date(2024, 1, 2),
             end_date=date(2024, 1, 1),
+            max_retries=3,
+            retry_base_delay_seconds=1,
+            retry_max_delay_seconds=60,
         )
 
     http_get.assert_not_called()
@@ -140,6 +149,9 @@ def test_get_weather_data_wraps_request_errors(
             30,
             start_date=date(2024, 1, 1),
             end_date=date(2024, 1, 2),
+            max_retries=0,
+            retry_base_delay_seconds=1,
+            retry_max_delay_seconds=60,
         )
 
     assert isinstance(exc_info.value.__cause__, httpx.RequestError)
@@ -157,7 +169,10 @@ def test_get_weather_data_wraps_http_status_error(
 
     with pytest.raises(
         RuntimeError,
-        match="HTTP error occurred: 503 - Service unavailable",
+        match=(
+            "HTTP error occurred while requesting weather data: "
+            "503 - Service unavailable"
+        ),
     ) as exc_info:
         get_weather_data(
             city_params,
@@ -165,6 +180,71 @@ def test_get_weather_data_wraps_http_status_error(
             30,
             start_date=date(2024, 1, 1),
             end_date=date(2024, 1, 2),
+            max_retries=0,
+            retry_base_delay_seconds=1,
+            retry_max_delay_seconds=60,
         )
 
     assert isinstance(exc_info.value.__cause__, httpx.HTTPStatusError)
+
+
+def test_get_weather_data_recovers_from_temporary_api_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    city_params: CityParams,
+    hourly_weather_payload: dict[str, Any],
+) -> None:
+    http_get = Mock(
+        side_effect=[
+            make_response(503, text="temporarily unavailable"),
+            make_response(200, json=hourly_weather_payload),
+        ]
+    )
+    sleep = Mock()
+    monkeypatch.setattr(httpx, "get", http_get)
+    monkeypatch.setattr(http_client.time, "sleep", sleep)
+
+    result = get_weather_data(
+        city_params,
+        "https://archive-api.open-meteo.com/v1/archive",
+        30,
+        start_date=date(2024, 1, 1),
+        end_date=date(2024, 1, 2),
+        max_retries=1,
+        retry_base_delay_seconds=0.5,
+        retry_max_delay_seconds=60,
+    )
+
+    assert isinstance(result, HourlyWeatherResponse)
+    assert http_get.call_count == 2
+    sleep.assert_called_once_with(0.5)
+
+
+def test_get_weather_data_fails_after_api_retries_are_exhausted(
+    monkeypatch: pytest.MonkeyPatch,
+    city_params: CityParams,
+) -> None:
+    http_get = Mock(
+        side_effect=[
+            make_response(503, text="unavailable"),
+            make_response(503, text="still unavailable"),
+            make_response(503, text="unavailable after retries"),
+        ]
+    )
+    sleep = Mock()
+    monkeypatch.setattr(httpx, "get", http_get)
+    monkeypatch.setattr(http_client.time, "sleep", sleep)
+
+    with pytest.raises(RuntimeError, match="503 - unavailable after retries"):
+        get_weather_data(
+            city_params,
+            "https://archive-api.open-meteo.com/v1/archive",
+            30,
+            start_date=date(2024, 1, 1),
+            end_date=date(2024, 1, 2),
+            max_retries=2,
+            retry_base_delay_seconds=1,
+            retry_max_delay_seconds=10,
+        )
+
+    assert http_get.call_count == 3
+    assert [call.args[0] for call in sleep.call_args_list] == [1, 2]

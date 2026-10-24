@@ -6,9 +6,6 @@ from typing import Any
 from common.socrata import get_latest_socrata_date
 from helpers import validate_date_range
 from mta_subway_pipeline.ingestion.client import (
-    SOCRATA_DEFAULT_MAX_RETRIES,
-    SOCRATA_DEFAULT_RETRY_BASE_DELAY_SECONDS,
-    SOCRATA_DEFAULT_RETRY_MAX_DELAY_SECONDS,
     SOCRATA_MAX_PAGE_SIZE,
     iter_subway_data,
 )
@@ -29,18 +26,9 @@ def _request_options(api_config: Mapping[str, Any]) -> dict[str, Any]:
         "base_url": str(api_config["base_url"]),
         "timeout_seconds": int(api_config["timeout_seconds"]),
         "response_format": str(api_config.get("response_format", "json")),
-        "max_retries": api_config.get(
-            "max_retries",
-            SOCRATA_DEFAULT_MAX_RETRIES,
-        ),
-        "retry_base_delay_seconds": api_config.get(
-            "retry_base_delay_seconds",
-            SOCRATA_DEFAULT_RETRY_BASE_DELAY_SECONDS,
-        ),
-        "retry_max_delay_seconds": api_config.get(
-            "retry_max_delay_seconds",
-            SOCRATA_DEFAULT_RETRY_MAX_DELAY_SECONDS,
-        ),
+        "max_retries": api_config["max_retries"],
+        "retry_base_delay_seconds": api_config["retry_base_delay_seconds"],
+        "retry_max_delay_seconds": api_config["retry_max_delay_seconds"],
     }
 
 

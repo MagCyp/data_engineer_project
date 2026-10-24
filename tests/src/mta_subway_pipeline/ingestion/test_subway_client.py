@@ -6,7 +6,7 @@ from unittest.mock import Mock
 import httpx
 import pytest
 
-from mta_subway_pipeline.ingestion import client
+from common import http as http_client
 from mta_subway_pipeline.ingestion.client import (
     get_subway_data,
 )
@@ -86,6 +86,9 @@ def test_get_subway_data_requests_and_validates_all_pages(
         start_date=date(2025, 1, 15),
         end_date=date(2025, 1, 15),
         page_size=2,
+        max_retries=3,
+        retry_base_delay_seconds=1,
+        retry_max_delay_seconds=60,
     )
 
     assert len(records) == 3
@@ -113,6 +116,9 @@ def test_get_subway_data_rejects_invalid_date_range(
             timeout_seconds=60,
             start_date=date(2025, 1, 16),
             end_date=date(2025, 1, 15),
+            max_retries=3,
+            retry_base_delay_seconds=1,
+            retry_max_delay_seconds=60,
         )
 
     http_get.assert_not_called()
@@ -160,6 +166,8 @@ def test_get_subway_data_wraps_request_errors(
             start_date=date(2025, 1, 15),
             end_date=date(2025, 1, 15),
             max_retries=0,
+            retry_base_delay_seconds=1,
+            retry_max_delay_seconds=60,
         )
 
     assert isinstance(exc_info.value.__cause__, httpx.RequestError)
@@ -183,7 +191,7 @@ def test_get_subway_data_retries_429_using_retry_after(
     )
     sleep = Mock()
     monkeypatch.setattr(httpx, "get", http_get)
-    monkeypatch.setattr(client.time, "sleep", sleep)
+    monkeypatch.setattr(http_client.time, "sleep", sleep)
 
     records = get_subway_data(
         resource_id="5wq4-mkjj",
@@ -192,6 +200,8 @@ def test_get_subway_data_retries_429_using_retry_after(
         start_date=date(2025, 1, 15),
         end_date=date(2025, 1, 15),
         max_retries=1,
+        retry_base_delay_seconds=1,
+        retry_max_delay_seconds=60,
     )
 
     assert len(records) == 1
@@ -214,7 +224,7 @@ def test_get_subway_data_retries_temporary_network_error(
     )
     sleep = Mock()
     monkeypatch.setattr(httpx, "get", http_get)
-    monkeypatch.setattr(client.time, "sleep", sleep)
+    monkeypatch.setattr(http_client.time, "sleep", sleep)
 
     records = get_subway_data(
         resource_id="5wq4-mkjj",
@@ -224,6 +234,7 @@ def test_get_subway_data_retries_temporary_network_error(
         end_date=date(2025, 1, 15),
         max_retries=1,
         retry_base_delay_seconds=0.5,
+        retry_max_delay_seconds=60,
     )
 
     assert records == []
@@ -243,7 +254,7 @@ def test_get_subway_data_raises_after_retries_are_exhausted(
     )
     sleep = Mock()
     monkeypatch.setattr(httpx, "get", http_get)
-    monkeypatch.setattr(client.time, "sleep", sleep)
+    monkeypatch.setattr(http_client.time, "sleep", sleep)
 
     with pytest.raises(RuntimeError, match="503"):
         get_subway_data(

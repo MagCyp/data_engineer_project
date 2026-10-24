@@ -104,3 +104,50 @@ def test_process_weather_month_rejects_dates_from_different_months() -> None:
             date(2026, 10, 1),
             date(2026, 11, 1),
         )
+
+
+def test_unavailable_api_preserves_existing_parquet(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bronze_path = tmp_path / "bronze_path" / "weather.parquet"
+    silver_path = tmp_path / "silver_path" / "weather.parquet"
+    bronze_path.parent.mkdir()
+    silver_path.parent.mkdir()
+    pl.DataFrame({"existing": ["bronze"]}).write_parquet(bronze_path)
+    pl.DataFrame({"existing": ["silver"]}).write_parquet(silver_path)
+    original_bronze = bronze_path.read_bytes()
+    original_silver = silver_path.read_bytes()
+
+    def get_output_path(
+        config: object,
+        *,
+        location: str,
+        year: int,
+        month: int,
+        storage_key: str,
+    ) -> Path:
+        del config, location, year, month
+        return bronze_path if storage_key == "bronze_path" else silver_path
+
+    monkeypatch.setattr(
+        pipeline,
+        "fetch_weather_for_location",
+        Mock(side_effect=RuntimeError("API unavailable")),
+    )
+    monkeypatch.setattr(
+        pipeline,
+        "get_weather_observations_path",
+        get_output_path,
+    )
+
+    with pytest.raises(RuntimeError, match="API unavailable"):
+        pipeline.process_weather_month(
+            {},
+            "New York",
+            date(2026, 10, 1),
+            date(2026, 10, 2),
+        )
+
+    assert bronze_path.read_bytes() == original_bronze
+    assert silver_path.read_bytes() == original_silver

@@ -9,14 +9,16 @@ from mta_subway_pipeline.validation.models import SubwaySourceRecord
 
 def make_config() -> dict[str, object]:
     return {
+        "http": {
+            "timeout_seconds": 60,
+            "max_retries": 3,
+            "retry_base_delay_seconds": 1,
+            "retry_max_delay_seconds": 60,
+        },
         "apis": {
             "ny_open_data": {
                 "base_url": "https://data.ny.gov/resource",
                 "response_format": "json",
-                "timeout_seconds": 60,
-                "max_retries": 3,
-                "retry_base_delay_seconds": 1,
-                "retry_max_delay_seconds": 60,
             }
         },
         "pipelines": {
