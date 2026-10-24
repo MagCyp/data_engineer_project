@@ -99,6 +99,8 @@ services:
       - |
         set -e
         airflow version
+        /opt/airflow/project-venv/bin/alembic \
+          -c /opt/airflow/project/alembic.ini upgrade head
         airflow pools set weather_pipeline 1 "Weather pipeline writers"
         airflow pools set active_mobility_pipeline 1 "Active mobility pipeline writers"
         airflow pools set subway_pipeline 1 "Subway pipeline writers"
