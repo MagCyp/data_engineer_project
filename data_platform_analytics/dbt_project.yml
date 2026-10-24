@@ -22,6 +22,9 @@ vars:
   mobility_timezone: America/New_York
   mobility_weather_location: New York
   rainy_day_threshold_mm: 0
+  activity_min_complete_days: 14
+  activity_min_entity_coverage: 0.9
+  activity_min_daily_coverage: 0.9
 
 clean-targets:         # directories to be removed by `dbt clean`
   - "target"

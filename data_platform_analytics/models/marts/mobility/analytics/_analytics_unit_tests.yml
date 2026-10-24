@@ -67,3 +67,174 @@ unit_tests:
         - {date_day: '2025-03-09', station_complex_id: spring-station, borough: Manhattan, total_ridership: 230.0, total_transfers: 23.0, observed_hours: 23, is_complete_day: true}
         - {date_day: '2025-03-10', station_complex_id: incomplete-station, borough: Queens, total_ridership: 10.0, total_transfers: 1.0, observed_hours: 1, is_complete_day: false}
         - {date_day: '2025-11-02', station_complex_id: autumn-station, borough: null, total_ridership: 250.0, total_transfers: 25.0, observed_hours: 25, is_complete_day: true}
+
+  - name: mobility_indexes_use_stable_covered_samples
+    description: >-
+      Indexes use entity baselines and become null when an eligible entity is
+      missing or incomplete; zero baselines and short histories are excluded.
+    model: mobility_weather_daily
+    overrides:
+      vars:
+        activity_min_complete_days: 3
+        activity_min_entity_coverage: 0.75
+        activity_min_daily_coverage: 0.9
+    given:
+      - input: ref('fct_weather_hourly')
+        format: sql
+        rows: |
+          select
+              date_day::date as date_day,
+              'New York'::text as location,
+              10.0::double precision as temperature_c,
+              0.0::double precision as precipitation_mm,
+              0.0::double precision as rain_mm
+          from generate_series(
+              '2025-01-01'::date,
+              '2025-01-04'::date,
+              interval '1 day'
+          ) as dates(date_day)
+
+      - input: ref('dim_date')
+        format: sql
+        rows: |
+          select date_day::date as date_day
+          from generate_series(
+              '2025-01-01'::date,
+              '2025-01-04'::date,
+              interval '1 day'
+          ) as dates(date_day)
+
+      - input: ref('active_mobility_weather_daily')
+        format: sql
+        rows: |
+          with dates as (
+              select date_day::date as date_day
+              from generate_series(
+                  '2025-01-01'::date,
+                  '2025-01-04'::date,
+                  interval '1 day'
+              ) as generated(date_day)
+          )
+
+          select
+              dates.date_day,
+              sensors.sensor_id,
+              sensors.flow_id,
+              'bike'::text as travel_mode,
+              case
+                  when sensors.sensor_id = 'bike-a'
+                      and dates.date_day = '2025-01-01'::date then 0
+                  when sensors.sensor_id = 'bike-a' then 15
+                  when sensors.sensor_id = 'bike-b' then 100
+                  else 0
+              end::double precision as mobility_count,
+              not (
+                  sensors.sensor_id = 'bike-a'
+                  and dates.date_day = '2025-01-03'::date
+              ) as is_complete_day
+          from dates
+          cross join (
+              values
+                  ('bike-a'::text, 'bike-a-flow'::text),
+                  ('bike-b'::text, 'bike-b-flow'::text),
+                  ('bike-zero'::text, 'bike-zero-flow'::text)
+          ) as sensors(sensor_id, flow_id)
+          where not (
+              sensors.sensor_id = 'bike-b'
+              and dates.date_day = '2025-01-04'::date
+          )
+
+          union all
+
+          select
+              dates.date_day,
+              'pedestrian-short'::text as sensor_id,
+              'pedestrian-short-flow'::text as flow_id,
+              'pedestrian'::text as travel_mode,
+              50.0::double precision as mobility_count,
+              true as is_complete_day
+          from dates
+          where dates.date_day <= '2025-01-02'::date
+
+      - input: ref('subway_weather_daily')
+        format: sql
+        rows: |
+          with dates as (
+              select date_day::date as date_day
+              from generate_series(
+                  '2025-01-01'::date,
+                  '2025-01-04'::date,
+                  interval '1 day'
+              ) as generated(date_day)
+          )
+
+          select
+              dates.date_day,
+              stations.station_complex_id,
+              case
+                  when stations.station_complex_id = 'station-a'
+                      and dates.date_day = '2025-01-01'::date then 0
+                  when stations.station_complex_id = 'station-a' then 150
+                  when stations.station_complex_id = 'station-b' then 100
+                  else 0
+              end::double precision as total_ridership,
+              not (
+                  stations.station_complex_id = 'station-a'
+                  and dates.date_day = '2025-01-03'::date
+              ) as is_complete_day
+          from dates
+          cross join (
+              values
+                  ('station-a'::text),
+                  ('station-b'::text),
+                  ('station-zero'::text)
+          ) as stations(station_complex_id)
+          where not (
+              stations.station_complex_id = 'station-b'
+              and dates.date_day = '2025-01-04'::date
+          )
+
+    expect:
+      rows:
+        - {date_day: '2025-01-01', bike_observed_count: 100.0, bike_reporting_sensors: 3, bike_eligible_sensors: 2, bike_complete_sensors: 2, bike_coverage_ratio: 1.0, bike_activity_index: 0.5, pedestrian_observed_count: 50.0, pedestrian_reporting_sensors: 1, pedestrian_eligible_sensors: 0, pedestrian_complete_sensors: 0, pedestrian_coverage_ratio: null, pedestrian_activity_index: null, subway_total_ridership: 100.0, subway_reporting_stations: 3, subway_eligible_stations: 2, subway_complete_stations: 2, subway_coverage_ratio: 1.0, subway_activity_index: 0.5}
+        - {date_day: '2025-01-02', bike_observed_count: 115.0, bike_reporting_sensors: 3, bike_eligible_sensors: 2, bike_complete_sensors: 2, bike_coverage_ratio: 1.0, bike_activity_index: 1.25, pedestrian_observed_count: 50.0, pedestrian_reporting_sensors: 1, pedestrian_eligible_sensors: 0, pedestrian_complete_sensors: 0, pedestrian_coverage_ratio: null, pedestrian_activity_index: null, subway_total_ridership: 250.0, subway_reporting_stations: 3, subway_eligible_stations: 2, subway_complete_stations: 2, subway_coverage_ratio: 1.0, subway_activity_index: 1.25}
+        - {date_day: '2025-01-03', bike_observed_count: 115.0, bike_reporting_sensors: 3, bike_eligible_sensors: 2, bike_complete_sensors: 1, bike_coverage_ratio: 0.5, bike_activity_index: null, pedestrian_observed_count: null, pedestrian_reporting_sensors: 0, pedestrian_eligible_sensors: 0, pedestrian_complete_sensors: 0, pedestrian_coverage_ratio: null, pedestrian_activity_index: null, subway_total_ridership: 250.0, subway_reporting_stations: 3, subway_eligible_stations: 2, subway_complete_stations: 1, subway_coverage_ratio: 0.5, subway_activity_index: null}
+        - {date_day: '2025-01-04', bike_observed_count: 15.0, bike_reporting_sensors: 2, bike_eligible_sensors: 2, bike_complete_sensors: 1, bike_coverage_ratio: 0.5, bike_activity_index: null, pedestrian_observed_count: null, pedestrian_reporting_sensors: 0, pedestrian_eligible_sensors: 0, pedestrian_complete_sensors: 0, pedestrian_coverage_ratio: null, pedestrian_activity_index: null, subway_total_ridership: 150.0, subway_reporting_stations: 2, subway_eligible_stations: 2, subway_complete_stations: 1, subway_coverage_ratio: 0.5, subway_activity_index: null}
+
+  - name: mobility_indexes_handle_empty_activity_sources
+    description: Weather remains available while missing activity stays null.
+    model: mobility_weather_daily
+    given:
+      - input: ref('fct_weather_hourly')
+        rows:
+          - {date_day: '2025-01-01', location: New York, temperature_c: 10.0, precipitation_mm: 0.0, rain_mm: 0.0}
+
+      - input: ref('dim_date')
+        rows:
+          - {date_day: '2025-01-01'}
+
+      - input: ref('active_mobility_weather_daily')
+        format: sql
+        rows: |
+          select
+              null::date as date_day,
+              null::text as sensor_id,
+              null::text as flow_id,
+              null::text as travel_mode,
+              null::double precision as mobility_count,
+              null::boolean as is_complete_day
+          where false
+
+      - input: ref('subway_weather_daily')
+        format: sql
+        rows: |
+          select
+              null::date as date_day,
+              null::text as station_complex_id,
+              null::double precision as total_ridership,
+              null::boolean as is_complete_day
+          where false
+
+    expect:
+      rows:
+        - {date_day: '2025-01-01', bike_observed_count: null, bike_reporting_sensors: 0, bike_eligible_sensors: 0, bike_complete_sensors: 0, bike_coverage_ratio: null, bike_activity_index: null, pedestrian_observed_count: null, pedestrian_reporting_sensors: 0, pedestrian_eligible_sensors: 0, pedestrian_complete_sensors: 0, pedestrian_coverage_ratio: null, pedestrian_activity_index: null, subway_total_ridership: null, subway_reporting_stations: 0, subway_eligible_stations: 0, subway_complete_stations: 0, subway_coverage_ratio: null, subway_activity_index: null}

@@ -121,7 +121,8 @@ models:
   - name: mobility_weather_daily
     description: >-
       New York daily weather with observed bike, pedestrian, and subway
-      activity. Indexes are ratios to the average observed day.
+      activity. Each coverage-adjusted index equally weights eligible entities
+      relative to their own complete-day baseline.
     columns:
       - name: date_day
         description: New York local calendar date and model grain.
@@ -148,31 +149,83 @@ models:
           estimate because physical locations may overlap.
 
       - name: bike_reporting_sensors
-        description: Number of distinct sensors with bike data for the day.
+        description: Number of distinct sensors with any observed bike data.
         data_tests:
           - not_null
+
+      - name: bike_eligible_sensors
+        description: >-
+          Stable bike-sensor sample with sufficient complete-day history,
+          calendar coverage, and a positive baseline.
+        data_tests:
+          - not_null
+
+      - name: bike_complete_sensors
+        description: Eligible bike sensors with a complete day.
+        data_tests:
+          - not_null
+
+      - name: bike_coverage_ratio
+        description: Complete bike sensors divided by eligible bike sensors.
 
       - name: pedestrian_observed_count
         description: Sum of pedestrian counts across reporting sensor flows.
 
       - name: pedestrian_reporting_sensors
-        description: Number of distinct sensors with pedestrian data.
+        description: Number of distinct sensors with any pedestrian data.
         data_tests:
           - not_null
+
+      - name: pedestrian_eligible_sensors
+        description: >-
+          Stable pedestrian-sensor sample with sufficient complete-day
+          history, calendar coverage, and a positive baseline.
+        data_tests:
+          - not_null
+
+      - name: pedestrian_complete_sensors
+        description: Eligible pedestrian sensors with a complete day.
+        data_tests:
+          - not_null
+
+      - name: pedestrian_coverage_ratio
+        description: >-
+          Complete pedestrian sensors divided by eligible pedestrian sensors.
 
       - name: subway_total_ridership
         description: Total observed ridership across reporting stations.
 
       - name: subway_reporting_stations
-        description: Number of distinct station complexes with data for the day.
+        description: Number of station complexes with any observed data.
         data_tests:
           - not_null
 
+      - name: subway_eligible_stations
+        description: >-
+          Stable station sample with sufficient complete-day history, calendar
+          coverage, and a positive baseline.
+        data_tests:
+          - not_null
+
+      - name: subway_complete_stations
+        description: Eligible stations with a complete day.
+        data_tests:
+          - not_null
+
+      - name: subway_coverage_ratio
+        description: Complete stations divided by eligible stations.
+
       - name: bike_activity_index
-        description: Bike observed count divided by its period average.
+        description: >-
+          Equal-weight mean of complete eligible sensors relative to their own
+          baselines. Null when daily coverage is insufficient.
 
       - name: pedestrian_activity_index
-        description: Pedestrian observed count divided by its period average.
+        description: >-
+          Equal-weight mean of complete eligible sensors relative to their own
+          baselines. Null when daily coverage is insufficient.
 
       - name: subway_activity_index
-        description: Subway ridership divided by its period average.
+        description: >-
+          Equal-weight mean of complete eligible stations relative to their own
+          baselines. Null when daily coverage is insufficient.
