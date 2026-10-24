@@ -100,6 +100,13 @@ models:
       - name: observed_hours
         description: Number of distinct UTC hours represented during the day.
 
+      - name: is_complete_day
+        description: >-
+          True when observed_hours equals the 23, 24, or 25 UTC hours in the
+          corresponding New York local day.
+        data_tests:
+          - not_null
+
       - name: avg_temperature_c
         description: Average hourly temperature for New York during the day.
 

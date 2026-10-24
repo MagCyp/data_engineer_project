@@ -40,11 +40,15 @@ final as (
         subway_daily.total_ridership,
         subway_daily.total_transfers,
         subway_daily.observed_hours,
+        subway_daily.observed_hours = dim_date.expected_hour_count
+            as is_complete_day,
         weather_daily.avg_temperature_c,
         weather_daily.total_precipitation_mm,
         weather_daily.is_rainy_day
     from subway_daily
-    inner join {{ ref('dim_subway_station') }} as dim_subway_station
+    left join {{ ref('dim_date') }} as dim_date
+        on subway_daily.date_day = dim_date.date_day
+    left join {{ ref('dim_subway_station') }} as dim_subway_station
         on subway_daily.station_complex_id
             = dim_subway_station.station_complex_id
     left join weather_daily
@@ -58,6 +62,7 @@ select
     total_ridership,
     total_transfers,
     observed_hours,
+    is_complete_day,
     avg_temperature_c,
     total_precipitation_mm,
     is_rainy_day

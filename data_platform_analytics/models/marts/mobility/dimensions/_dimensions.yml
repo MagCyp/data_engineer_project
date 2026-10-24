@@ -36,6 +36,12 @@ models:
 
       - name: expected_hour_count
         description: Number of UTC hours in the New York local day (23, 24, or 25).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [23, 24, 25]
+                quote: false
 
   - name: dim_active_mobility_sensor
     description: One row per NYC active-mobility sensor from the API snapshot.

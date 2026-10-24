@@ -1,0 +1,69 @@
+version: 2
+
+unit_tests:
+  - name: subway_daily_preserves_dst_days_and_missing_station
+    description: >-
+      A 23-hour spring day and a 25-hour autumn day are complete, and a missing
+      station dimension row does not remove its ridership.
+    model: subway_weather_daily
+    given:
+      - input: ref('fct_subway_ridership_hourly')
+        format: sql
+        rows: |
+          select
+              '2025-03-09'::date as date_day,
+              'spring-station'::text as station_complex_id,
+              observed_at_utc,
+              10.0::double precision as ridership,
+              1.0::double precision as transfers
+          from generate_series(
+              '2025-03-09 05:00:00+00'::timestamptz,
+              '2025-03-10 03:00:00+00'::timestamptz,
+              interval '1 hour'
+          ) as hours(observed_at_utc)
+
+          union all
+
+          select
+              '2025-11-02'::date as date_day,
+              'autumn-station'::text as station_complex_id,
+              observed_at_utc,
+              10.0::double precision as ridership,
+              1.0::double precision as transfers
+          from generate_series(
+              '2025-11-02 04:00:00+00'::timestamptz,
+              '2025-11-03 04:00:00+00'::timestamptz,
+              interval '1 hour'
+          ) as hours(observed_at_utc)
+
+          union all
+
+          select
+              '2025-03-10'::date as date_day,
+              'incomplete-station'::text as station_complex_id,
+              '2025-03-10 04:00:00+00'::timestamptz as observed_at_utc,
+              10.0::double precision as ridership,
+              1.0::double precision as transfers
+
+      - input: ref('dim_date')
+        rows:
+          - {date_day: '2025-03-09', expected_hour_count: 23}
+          - {date_day: '2025-03-10', expected_hour_count: 24}
+          - {date_day: '2025-11-02', expected_hour_count: 25}
+
+      - input: ref('dim_subway_station')
+        rows:
+          - {station_complex_id: spring-station, borough: Manhattan}
+          - {station_complex_id: incomplete-station, borough: Queens}
+
+      - input: ref('fct_weather_hourly')
+        rows:
+          - {date_day: '2025-03-09', location: New York, temperature_c: 10.0, precipitation_mm: 0.0, rain_mm: 0.0}
+          - {date_day: '2025-03-10', location: New York, temperature_c: 11.0, precipitation_mm: 0.0, rain_mm: 0.0}
+          - {date_day: '2025-11-02', location: New York, temperature_c: 12.0, precipitation_mm: 0.0, rain_mm: 0.0}
+
+    expect:
+      rows:
+        - {date_day: '2025-03-09', station_complex_id: spring-station, borough: Manhattan, total_ridership: 230.0, total_transfers: 23.0, observed_hours: 23, is_complete_day: true}
+        - {date_day: '2025-03-10', station_complex_id: incomplete-station, borough: Queens, total_ridership: 10.0, total_transfers: 1.0, observed_hours: 1, is_complete_day: false}
+        - {date_day: '2025-11-02', station_complex_id: autumn-station, borough: null, total_ridership: 250.0, total_transfers: 25.0, observed_hours: 25, is_complete_day: true}
