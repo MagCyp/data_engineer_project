@@ -3,9 +3,9 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "weather-data-platform"
+name = "nyc-mobility-data-platform"
 version = "0.1.0"
-description = "Data engineering pet project for weather data"
+description = "NYC mobility and weather data platform pet project"
 requires-python = ">=3.14"
 dependencies = [
     "alembic==1.20.0",

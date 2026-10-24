@@ -3,10 +3,15 @@
 .pytest_cache
 .ruff_cache
 **/__pycache__
-**/*.pyc
+*.egg-info
+*.py[cod]
 .env
+
 data
-logs
+airflow/config/airflow.cfg
 airflow/logs
+data_platform_analytics/dbt_packages
 data_platform_analytics/logs
 data_platform_analytics/target
+tests
+TODO.md
