@@ -1,0 +1,18 @@
+version: 2
+
+unit_tests:
+  - name: active_mobility_hourly_excludes_problem_records
+    description: >-
+      Deleted and null source intervals remain visible as problems but do not
+      contribute to the observed hourly count.
+    model: int_active_mobility_counts_hourly
+    given:
+      - input: ref('stg_mobility__active_mobility_counts')
+        rows:
+          - {sensor_id: sensor-a, flow_id: flow-a, travel_mode: bike, direction: in, timezone: America/New_York, observed_at_local: '2025-01-01 00:00:00', observed_at_utc: '2025-01-01 05:00:00+00', interval_minutes: 15, mobility_count: 10, source_status: raw, ingested_at: '2025-01-02 00:00:00+00'}
+          - {sensor_id: sensor-a, flow_id: flow-a, travel_mode: bike, direction: in, timezone: America/New_York, observed_at_local: '2025-01-01 00:15:00', observed_at_utc: '2025-01-01 05:15:00+00', interval_minutes: 15, mobility_count: 20, source_status: modified, ingested_at: '2025-01-02 00:00:00+00'}
+          - {sensor_id: sensor-a, flow_id: flow-a, travel_mode: bike, direction: in, timezone: America/New_York, observed_at_local: '2025-01-01 00:30:00', observed_at_utc: '2025-01-01 05:30:00+00', interval_minutes: 15, mobility_count: 30, source_status: deleted, ingested_at: '2025-01-02 00:00:00+00'}
+          - {sensor_id: sensor-a, flow_id: flow-a, travel_mode: bike, direction: in, timezone: America/New_York, observed_at_local: '2025-01-01 00:45:00', observed_at_utc: '2025-01-01 05:45:00+00', interval_minutes: 15, mobility_count: null, source_status: raw, ingested_at: '2025-01-02 00:00:00+00'}
+    expect:
+      rows:
+        - {sensor_id: sensor-a, flow_id: flow-a, mobility_count: 30, source_record_count: 4, valid_source_record_count: 2, problem_source_record_count: 2}

@@ -35,7 +35,9 @@ models:
           - not_null
 
       - name: mobility_count
-        description: Sum of valid active-mobility counts for the local day.
+        description: >-
+          Observed sum of valid counts for the local day, including counts
+          from incomplete hours. Use is_complete_day when comparing days.
         data_tests:
           - not_null
 
