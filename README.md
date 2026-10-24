@@ -212,6 +212,7 @@ Important variables:
 |---|---|---|
 | `POSTGRES_PORT` | `5433` | Warehouse port exposed on the host |
 | `AIRFLOW_PORT` | `8080` | Airflow UI/API port |
+| `DBT_DOCS_PORT` | `8081` | Optional dbt documentation site port |
 | `AIRFLOW_ADMIN_USERNAME` | `airflow` | Local Airflow account |
 | `AIRFLOW_ADMIN_PASSWORD` | `airflow` | Local Airflow password |
 | `SOCRATA_APP_TOKEN` | empty | Optional token for higher Socrata limits |
@@ -263,6 +264,23 @@ Check DAG imports:
 ```bash
 docker compose exec airflow-scheduler airflow dags list-import-errors
 ```
+
+Generate and serve the dbt catalog and lineage graph:
+
+```bash
+docker compose --profile docs up -d --wait dbt-docs
+```
+
+Open [http://localhost:8081](http://localhost:8081). The service runs
+`dbt docs generate` before starting the web server, so restart it after model
+or documentation changes to regenerate the artifacts:
+
+```bash
+docker compose --profile docs restart dbt-docs
+```
+
+The `docs` profile is optional; `dbt-docs` does not start during a normal
+`docker compose up`.
 
 Open PostgreSQL's interactive shell with the default local configuration:
 
@@ -320,8 +338,8 @@ docker-compose.yml          Local platform services and initialization
 
 ## Current scope
 
-- DAGs are manually triggered; a publication-aware automatic schedule is
-  intentionally deferred.
+- DAGs are manually triggered by design. Automatic scheduling and catchup are
+  outside the project scope.
 - Socrata works without an app token, but authenticated requests usually have
   better rate limits.
 - The project is designed for local learning and portfolio demonstration, not

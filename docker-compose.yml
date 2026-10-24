@@ -169,5 +169,36 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
+  dbt-docs:
+    <<: *airflow-common
+    profiles: ["docs"]
+    command:
+      - bash
+      - -c
+      - |
+        set -e
+        /opt/airflow/project-venv/bin/dbt docs generate \
+          --project-dir /opt/airflow/project/data_platform_analytics \
+          --profiles-dir /opt/airflow/project/data_platform_analytics
+        exec /opt/airflow/project-venv/bin/dbt docs serve \
+          --project-dir /opt/airflow/project/data_platform_analytics \
+          --profiles-dir /opt/airflow/project/data_platform_analytics \
+          --host 0.0.0.0 \
+          --port 8081 \
+          --no-browser
+    ports:
+      - "${DBT_DOCS_PORT:-8081}:8081"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8081"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      <<: *airflow-common-depends-on
+      airflow-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
 volumes:
   postgres_data:

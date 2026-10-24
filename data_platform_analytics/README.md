@@ -21,3 +21,15 @@ dbt build \
 
 The Airflow mobility DAGs run this build automatically after every successful
 set of ingestion tasks.
+
+## Documentation and lineage graph
+
+From the repository root, start the optional dbt Docs service:
+
+```bash
+docker compose --profile docs up -d --wait dbt-docs
+```
+
+Open [http://localhost:8081](http://localhost:8081) to browse models, columns,
+tests, sources, compiled SQL, and the lineage graph. Restart `dbt-docs` after
+changing dbt files so that it regenerates `manifest.json` and `catalog.json`.
